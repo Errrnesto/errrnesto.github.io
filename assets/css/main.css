@@ -2959,7 +2959,7 @@
 			}
 
 			.wrapper.style2 hr {
-				border-bottom-color: rgba(144, 144, 144, 0.25);
+				border-bottom-color: black;
 			}
 
 			.wrapper.style2 .box {
@@ -3158,7 +3158,7 @@
 
 			.wrapper.style2 .spotlight {
 				background-color: white;
-				border-bottom-color: rgba(144, 144, 144, 0.25);
+				border-bottom-color: black;
 			}
 
 			.wrapper.style2.alt {
