@@ -19,7 +19,7 @@
     #controls {
       width: 220px; padding: 20px; background: #fff; color: #000;
       font-size: 12px; border-right: 1px solid #000;
-      overflow-y: auto; max-height: 100vh;
+      overflow-y: auto; max-height: 100vh; position: fixed; top: 0; left: 0;
     }
     #controls h2 { margin: 0 0 20px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
     #controls label { display: block; margin: 16px 0 4px; color: #000; font-weight: 500; }
@@ -47,7 +47,7 @@
     .btn-row button:hover { background: #000; color: #fff; }
     .btn-row button.primary { background: #FF00FF; color: #fff; border-color: #FF00FF; }
     .btn-row button.primary:hover { background: #cc00cc; border-color: #cc00cc; }
-    #canvas-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; background: #f5f5f5; }
+    #canvas-container { margin-left: 220px; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f5f5f5; }
     .value-display { color: #666; font-size: 11px; text-align: right; }
   </style>
 </head>
