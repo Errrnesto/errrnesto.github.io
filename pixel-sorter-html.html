@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Sorter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; display: flex; min-height: 100vh; font-family: 'Roboto Mono', monospace; }
+    #controls {
+      width: 220px; padding: 20px; background: #fff; color: #000;
+      font-size: 12px; border-right: 1px solid #000;
+      overflow-y: auto; max-height: 100vh;
+    }
+    #controls h2 { margin: 0 0 20px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    #controls label { display: block; margin: 16px 0 4px; color: #000; font-weight: 500; }
+    #controls input[type="range"] { 
+      width: 100%; margin: 0; -webkit-appearance: none; background: #eee; height: 4px; border-radius: 2px;
+    }
+    #controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; background: #FF00FF; border-radius: 50%; cursor: pointer;
+    }
+    #controls input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; background: #FF00FF; border-radius: 50%; cursor: pointer; border: none;
+    }
+    #controls select { 
+      width: 100%; padding: 8px; background: #fff; color: #000; 
+      border: 1px solid #000; font-family: 'Roboto Mono', monospace; font-size: 12px;
+    }
+    #controls select:focus { outline: 2px solid #FF00FF; outline-offset: 1px; }
+    #controls input[type="file"] { width: 100%; margin-bottom: 10px; font-family: 'Roboto Mono', monospace; font-size: 11px; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .btn-row button {
+      flex: 1 1 45%; padding: 10px 8px; background: #fff; color: #000;
+      border: 1px solid #000; cursor: pointer; font-family: 'Roboto Mono', monospace;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.15s;
+    }
+    .btn-row button:hover { background: #000; color: #fff; }
+    .btn-row button.primary { background: #FF00FF; color: #fff; border-color: #FF00FF; }
+    .btn-row button.primary:hover { background: #cc00cc; border-color: #cc00cc; }
+    #canvas-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; background: #f5f5f5; }
+    .value-display { color: #666; font-size: 11px; text-align: right; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <h2>Pixel Sorter</h2>
+    <input type="file" id="fileInput" accept="image/*">
+    
+    <label>Spatial Min: <span id="spMinVal">0%</span></label>
+    <input type="range" id="spMin" min="0" max="100" value="0">
+    
+    <label>Spatial Max: <span id="spMaxVal">100%</span></label>
+    <input type="range" id="spMax" min="0" max="100" value="100">
+    
+    <label>Brightness Min: <span id="brMinVal">25</span></label>
+    <input type="range" id="brMin" min="0" max="255" value="25">
+    
+    <label>Brightness Max: <span id="brMaxVal">230</span></label>
+    <input type="range" id="brMax" min="0" max="255" value="230">
+    
+    <label>Sort By</label>
+    <select id="sortBy">
+      <option value="brightness">Brightness</option>
+      <option value="hue">Hue</option>
+      <option value="saturation">Saturation</option>
+      <option value="red">Red</option>
+      <option value="green">Green</option>
+      <option value="blue">Blue</option>
+    </select>
+    
+    <label>Direction</label>
+    <select id="direction">
+      <option value="right">Right</option>
+      <option value="left">Left</option>
+      <option value="bottom">Bottom</option>
+      <option value="top">Top</option>
+    </select>
+    
+    <div class="btn-row">
+      <button class="primary" id="sortBtn">Sort</button>
+      <button id="resetBtn">Reset</button>
+      <button id="saveBtn">Save</button>
+    </div>
+  </div>
+  <div id="canvas-container"></div>
+
+<script>
+let img, sortedImg;
+let minSpatial=0, maxSpatial=100, minBright=25, maxBright=230;
+let sortBy='brightness', sortDirection='right';
+
+function setup() {
+  let cnv = createCanvas(600, 400);
+  cnv.parent('canvas-container');
+  background(255);
+  fill(150);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(14);
+  textFont('Roboto Mono');
+  text('Upload an image to begin', width/2, height/2);
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  let file = e.target.files[0];
+  if (file && file.type.startsWith('image/')) {
+    let reader = new FileReader();
+    reader.onload = function(ev) {
+      loadImage(ev.target.result, im => {
+        img = im;
+        resizeCanvas(img.width, img.height);
+        sortedImg = img.get();
+        image(sortedImg, 0, 0);
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById('spMin').oninput = function() { minSpatial = +this.value; document.getElementById('spMinVal').textContent = this.value + '%'; };
+document.getElementById('spMax').oninput = function() { maxSpatial = +this.value; document.getElementById('spMaxVal').textContent = this.value + '%'; };
+document.getElementById('brMin').oninput = function() { minBright = +this.value; document.getElementById('brMinVal').textContent = this.value; };
+document.getElementById('brMax').oninput = function() { maxBright = +this.value; document.getElementById('brMaxVal').textContent = this.value; };
+document.getElementById('sortBy').onchange = function() { sortBy = this.value; };
+document.getElementById('direction').onchange = function() { sortDirection = this.value; };
+document.getElementById('sortBtn').onclick = sortPixels;
+document.getElementById('resetBtn').onclick = () => { if (img) { sortedImg = img.get(); image(sortedImg, 0, 0); } };
+document.getElementById('saveBtn').onclick = () => { if (sortedImg) save(sortedImg, 'sorted.png'); };
+
+function sortPixels() {
+  if (!sortedImg) return;
+  let horiz = (sortDirection === 'left' || sortDirection === 'right');
+  let rev = (sortDirection === 'left' || sortDirection === 'top');
+  sortedImg.loadPixels();
+  
+  if (horiz) {
+    let minPx = Math.floor((minSpatial / 100) * sortedImg.width);
+    let maxPx = Math.floor((maxSpatial / 100) * sortedImg.width);
+    for (let y = 0; y < sortedImg.height; y++) {
+      let row = [];
+      for (let x = minPx; x < maxPx; x++) {
+        let idx = (y * sortedImg.width + x) * 4;
+        row.push({ r: sortedImg.pixels[idx], g: sortedImg.pixels[idx+1], b: sortedImg.pixels[idx+2], a: sortedImg.pixels[idx+3] });
+      }
+      let sorted = sortSpans(row, rev);
+      for (let i = 0; i < sorted.length; i++) {
+        let idx = (y * sortedImg.width + (minPx + i)) * 4;
+        sortedImg.pixels[idx] = sorted[i].r;
+        sortedImg.pixels[idx+1] = sorted[i].g;
+        sortedImg.pixels[idx+2] = sorted[i].b;
+        sortedImg.pixels[idx+3] = sorted[i].a;
+      }
+    }
+  } else {
+    let minPx = Math.floor((minSpatial / 100) * sortedImg.height);
+    let maxPx = Math.floor((maxSpatial / 100) * sortedImg.height);
+    for (let x = 0; x < sortedImg.width; x++) {
+      let col = [];
+      for (let y = minPx; y < maxPx; y++) {
+        let idx = (y * sortedImg.width + x) * 4;
+        col.push({ r: sortedImg.pixels[idx], g: sortedImg.pixels[idx+1], b: sortedImg.pixels[idx+2], a: sortedImg.pixels[idx+3] });
+      }
+      let sorted = sortSpans(col, rev);
+      for (let i = 0; i < sorted.length; i++) {
+        let idx = ((minPx + i) * sortedImg.width + x) * 4;
+        sortedImg.pixels[idx] = sorted[i].r;
+        sortedImg.pixels[idx+1] = sorted[i].g;
+        sortedImg.pixels[idx+2] = sorted[i].b;
+        sortedImg.pixels[idx+3] = sorted[i].a;
+      }
+    }
+  }
+  sortedImg.updatePixels();
+  image(sortedImg, 0, 0);
+}
+
+function sortSpans(px, rev) {
+  let res = [...px], i = 0;
+  while (i < res.length) {
+    while (i < res.length && !inThresh(res[i])) i++;
+    let start = i;
+    while (i < res.length && inThresh(res[i])) i++;
+    if (i > start) {
+      let span = res.slice(start, i);
+      span.sort((a, b) => rev ? getVal(b) - getVal(a) : getVal(a) - getVal(b));
+      for (let j = 0; j < span.length; j++) res[start + j] = span[j];
+    }
+  }
+  return res;
+}
+
+function inThresh(p) { let v = (p.r + p.g + p.b) / 3; return v >= minBright && v <= maxBright; }
+
+function getVal(p) {
+  if (sortBy === 'brightness') return (p.r + p.g + p.b) / 3;
+  if (sortBy === 'red') return p.r;
+  if (sortBy === 'green') return p.g;
+  if (sortBy === 'blue') return p.b;
+  let r = p.r/255, g = p.g/255, b = p.b/255;
+  let mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+  if (sortBy === 'saturation') return mx === 0 ? 0 : ((mx-mn)/mx)*255;
+  let h = 0;
+  if (mx !== mn) {
+    let d = mx - mn;
+    if (mx === r) h = ((g-b)/d + (g<b?6:0))/6;
+    else if (mx === g) h = ((b-r)/d + 2)/6;
+    else h = ((r-g)/d + 4)/6;
+  }
+  return h * 255;
+}
+</script>
+</body>
+</html>
