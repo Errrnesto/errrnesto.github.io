@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image ↔ Table Converter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background: #fff;
+      color: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 20px;
+      border-bottom: 1px solid #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    header a {
+      font-size: 12px;
+      color: #000;
+      text-decoration: none;
+    }
+    header a:hover { color: #FF00FF; }
+    main {
+      flex: 1;
+      padding: 40px 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .section {
+      border: 1px solid #000;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section h2 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .section p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #666;
+      margin-bottom: 16px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .row:last-child { margin-bottom: 0; }
+    label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    input[type="file"] {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 11px;
+    }
+    select {
+      padding: 8px;
+      background: #fff;
+      color: #000;
+      border: 1px solid #000;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+    }
+    select:focus { outline: 2px solid #FF00FF; outline-offset: 1px; }
+    button {
+      padding: 10px 16px;
+      background: #fff;
+      color: #000;
+      border: 1px solid #000;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    button:hover { background: #000; color: #fff; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button:disabled:hover { background: #fff; color: #000; }
+    button.primary { background: #FF00FF; color: #fff; border-color: #FF00FF; }
+    button.primary:hover { background: #cc00cc; border-color: #cc00cc; }
+    button.primary:disabled { background: #FF00FF; opacity: 0.4; }
+    button.primary:disabled:hover { background: #FF00FF; color: #fff; }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #000;
+      padding: 12px;
+      font-size: 12px;
+      margin: 12px 0;
+      display: none;
+    }
+    .warning.show { display: block; }
+    .warning p { color: #000; margin-bottom: 8px; }
+    .info {
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+    }
+    .preview {
+      margin-top: 16px;
+      max-width: 100%;
+      overflow: auto;
+      border: 1px solid #eee;
+      padding: 8px;
+      display: none;
+    }
+    .preview.show { display: block; }
+    .preview img {
+      max-width: 320px;
+      height: auto;
+      image-rendering: pixelated;
+    }
+    .preview-info {
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+    }
+    .channel-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid #000;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      cursor: grab;
+      background: #fff;
+      font-size: 12px;
+    }
+    .channel-item:active { cursor: grabbing; }
+    .channel-item.dragging { opacity: 0.5; }
+    .channel-item input {
+      width: 60px;
+      padding: 4px;
+      border: 1px solid #000;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 11px;
+    }
+    .preview-tabs {
+      display: flex;
+      gap: 0;
+    }
+    .preview-tab {
+      padding: 8px 16px;
+      border: 1px solid #000;
+      border-bottom: none;
+      background: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      margin-right: -1px;
+    }
+    .preview-tab.active {
+      background: #FF00FF;
+      color: #fff;
+      border-color: #FF00FF;
+    }
+    .preview-grid {
+      display: grid;
+      font-size: 10px;
+      border: 1px solid #000;
+      border-top: none;
+    }
+    .preview-cell {
+      padding: 4px 6px;
+      border-right: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+      min-width: 32px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Image ↔ Table Converter</h1>
+    <a href="index.html">← Back</a>
+  </header>
+  
+  <main>
+    <!-- IMAGE TO TABLE -->
+    <div class="section">
+      <h2>Image → Table (.xlsx)</h2>
+      <p>Convert an image to a spreadsheet with one byte per cell. Each channel (R, G, B, A) gets its own sheet.</p>
+      
+      <div class="row">
+        <input type="file" id="imgInput" accept="image/*">
+      </div>
+      
+      <div class="warning" id="imgWarning">
+        <p>⚠ Image exceeds 640×640 pixels. It will be resized to fit within this limit.</p>
+        <button id="resizeBtn">Resize and Continue</button>
+      </div>
+      
+      <div class="preview" id="imgPreview">
+        <img id="previewImg">
+        <div class="preview-info" id="imgInfo"></div>
+      </div>
+      
+      <div class="row" style="margin-top:16px;">
+        <button class="primary" id="exportXlsxBtn" disabled>Export .xlsx</button>
+      </div>
+    </div>
+    
+    <!-- TABLE TO RAW -->
+    <div class="section">
+      <h2>Table → Raw</h2>
+      <p>Convert an .xlsx spreadsheet back to a headerless .raw file. Each sheet should contain one channel.</p>
+      
+      <div class="row">
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls">
+      </div>
+      
+      <div class="row">
+        <label>Channel Order:</label>
+        <select id="channelOrder">
+          <option value="planar">Planar (RRRR...GGGG...BBBB...)</option>
+          <option value="interleaved">Interleaved (RGBRGBRGB...)</option>
+        </select>
+      </div>
+      
+      <div class="info" id="xlsxInfo"></div>
+      
+      <div id="channelConfig" style="display:none;margin-top:16px;">
+        <label style="display:block;margin-bottom:8px;">Channel order (drag to reorder):</label>
+        <div id="channelList"></div>
+      </div>
+      
+      <div id="xlsxPreview" style="display:none;margin-top:16px;">
+        <label style="display:block;margin-bottom:8px;">Preview (top-left 8×8):</label>
+        <div id="previewTabs"></div>
+        <div id="previewTable" style="overflow:auto;max-height:200px;border:1px solid #eee;margin-top:8px;"></div>
+      </div>
+      
+      <div class="row" style="margin-top:16px;">
+        <button class="primary" id="exportRawBtn" disabled>Export .raw</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // === IMAGE TO TABLE ===
+    const imgInput = document.getElementById('imgInput');
+    const imgWarning = document.getElementById('imgWarning');
+    const resizeBtn = document.getElementById('resizeBtn');
+    const imgPreview = document.getElementById('imgPreview');
+    const previewImg = document.getElementById('previewImg');
+    const imgInfo = document.getElementById('imgInfo');
+    const exportXlsxBtn = document.getElementById('exportXlsxBtn');
+    
+    let currentImg = null;
+    let needsResize = false;
+    let imgData = null;
+    
+    const MAX_DIM = 640;
+    
+    imgInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const img = new Image();
+      img.onload = () => {
+        currentImg = img;
+        needsResize = img.width > MAX_DIM || img.height > MAX_DIM;
+        
+        if (needsResize) {
+          imgWarning.classList.add('show');
+          imgPreview.classList.remove('show');
+          exportXlsxBtn.disabled = true;
+          imgData = null;
+        } else {
+          imgWarning.classList.remove('show');
+          processImage(img, img.width, img.height);
+        }
+      };
+      img.src = URL.createObjectURL(file);
+    });
+    
+    resizeBtn.addEventListener('click', () => {
+      if (!currentImg) return;
+      let w = currentImg.width, h = currentImg.height;
+      const scale = Math.min(MAX_DIM / w, MAX_DIM / h);
+      w = Math.floor(w * scale);
+      h = Math.floor(h * scale);
+      imgWarning.classList.remove('show');
+      processImage(currentImg, w, h);
+    });
+    
+    function processImage(img, w, h) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      imgData = ctx.getImageData(0, 0, w, h);
+      
+      previewImg.src = canvas.toDataURL();
+      const hasAlpha = checkAlpha(imgData.data);
+      imgInfo.textContent = `${w}×${h} pixels | ${hasAlpha ? 'RGBA' : 'RGB'} | ${w * h * (hasAlpha ? 4 : 3)} bytes`;
+      imgPreview.classList.add('show');
+      exportXlsxBtn.disabled = false;
+    }
+    
+    function checkAlpha(data) {
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] < 255) return true;
+      }
+      return false;
+    }
+    
+    exportXlsxBtn.addEventListener('click', () => {
+      if (!imgData) return;
+      
+      const w = imgData.width, h = imgData.height;
+      const data = imgData.data;
+      const hasAlpha = checkAlpha(data);
+      
+      const channels = { R: [], G: [], B: [] };
+      if (hasAlpha) channels.A = [];
+      
+      for (let y = 0; y < h; y++) {
+        const rowR = [], rowG = [], rowB = [], rowA = [];
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          rowR.push(data[i]);
+          rowG.push(data[i + 1]);
+          rowB.push(data[i + 2]);
+          if (hasAlpha) rowA.push(data[i + 3]);
+        }
+        channels.R.push(rowR);
+        channels.G.push(rowG);
+        channels.B.push(rowB);
+        if (hasAlpha) channels.A.push(rowA);
+      }
+      
+      const wb = XLSX.utils.book_new();
+      for (const [name, rows] of Object.entries(channels)) {
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+      
+      XLSX.writeFile(wb, 'image_channels.xlsx');
+    });
+    
+    // === TABLE TO RAW ===
+    const xlsxInput = document.getElementById('xlsxInput');
+    const channelOrder = document.getElementById('channelOrder');
+    const xlsxInfo = document.getElementById('xlsxInfo');
+    const exportRawBtn = document.getElementById('exportRawBtn');
+    const channelConfig = document.getElementById('channelConfig');
+    const channelList = document.getElementById('channelList');
+    const xlsxPreview = document.getElementById('xlsxPreview');
+    const previewTabs = document.getElementById('previewTabs');
+    const previewTable = document.getElementById('previewTable');
+    
+    let xlsxData = null;
+    let channelNames = [];
+    let activePreviewTab = null;
+    
+    xlsxInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        
+        xlsxData = {};
+        channelNames = wb.SheetNames.slice();
+        let dims = null;
+        
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name];
+          const arr = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          xlsxData[name] = arr;
+          
+          if (!dims && arr.length > 0) {
+            dims = { h: arr.length, w: arr[0].length };
+          }
+        }
+        
+        xlsxInfo.textContent = `${channelNames.length} channel(s) | ${dims ? dims.w + '×' + dims.h : 'empty'}`;
+        
+        renderChannelList();
+        renderPreviewTabs();
+        if (channelNames.length > 0) {
+          showPreview(channelNames[0]);
+        }
+        
+        channelConfig.style.display = 'block';
+        xlsxPreview.style.display = 'block';
+        exportRawBtn.disabled = false;
+      };
+      reader.readAsArrayBuffer(file);
+    });
+    
+    function renderChannelList() {
+      channelList.innerHTML = '';
+      channelNames.forEach((name, idx) => {
+        const item = document.createElement('div');
+        item.className = 'channel-item';
+        item.draggable = true;
+        item.dataset.idx = idx;
+        
+        const label = document.createElement('span');
+        label.textContent = (idx + 1) + '.';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = name;
+        input.addEventListener('change', () => {
+          const oldName = channelNames[idx];
+          const newName = input.value.trim() || oldName;
+          if (newName !== oldName && xlsxData[oldName]) {
+            xlsxData[newName] = xlsxData[oldName];
+            delete xlsxData[oldName];
+            channelNames[idx] = newName;
+            renderPreviewTabs();
+            if (activePreviewTab === oldName) showPreview(newName);
+          }
+        });
+        
+        item.appendChild(label);
+        item.appendChild(input);
+        channelList.appendChild(item);
+        
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragend', handleDragEnd);
+      });
+    }
+    
+    let dragIdx = null;
+    
+    function handleDragStart(e) {
+      dragIdx = +this.dataset.idx;
+      this.classList.add('dragging');
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      const dropIdx = +this.dataset.idx;
+      if (dragIdx !== null && dragIdx !== dropIdx) {
+        const moved = channelNames.splice(dragIdx, 1)[0];
+        channelNames.splice(dropIdx, 0, moved);
+        renderChannelList();
+        renderPreviewTabs();
+      }
+    }
+    
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      dragIdx = null;
+    }
+    
+    function renderPreviewTabs() {
+      previewTabs.innerHTML = '';
+      previewTabs.className = 'preview-tabs';
+      channelNames.forEach(name => {
+        const tab = document.createElement('div');
+        tab.className = 'preview-tab' + (name === activePreviewTab ? ' active' : '');
+        tab.textContent = name;
+        tab.addEventListener('click', () => showPreview(name));
+        previewTabs.appendChild(tab);
+      });
+    }
+    
+    function showPreview(name) {
+      activePreviewTab = name;
+      renderPreviewTabs();
+      
+      const rows = xlsxData[name] || [];
+      const previewRows = 8, previewCols = 8;
+      
+      let html = '<div class="preview-grid" style="grid-template-columns: repeat(' + Math.min(previewCols, (rows[0]?.length || 0)) + ', 1fr);">';
+      for (let y = 0; y < Math.min(previewRows, rows.length); y++) {
+        for (let x = 0; x < Math.min(previewCols, rows[y]?.length || 0); x++) {
+          const val = rows[y][x] ?? '';
+          html += '<div class="preview-cell">' + val + '</div>';
+        }
+      }
+      html += '</div>';
+      previewTable.innerHTML = html;
+    }
+    
+    exportRawBtn.addEventListener('click', () => {
+      if (!xlsxData || channelNames.length === 0) return;
+      
+      const order = channelOrder.value;
+      
+      const first = xlsxData[channelNames[0]];
+      const h = first.length;
+      const w = first[0]?.length || 0;
+      
+      let rawBytes;
+      
+      if (order === 'planar') {
+        const totalBytes = channelNames.length * w * h;
+        rawBytes = new Uint8Array(totalBytes);
+        let offset = 0;
+        
+        for (const ch of channelNames) {
+          const rows = xlsxData[ch];
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              rawBytes[offset++] = rows[y]?.[x] ?? 0;
+            }
+          }
+        }
+      } else {
+        const totalBytes = channelNames.length * w * h;
+        rawBytes = new Uint8Array(totalBytes);
+        let offset = 0;
+        
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            for (const ch of channelNames) {
+              rawBytes[offset++] = xlsxData[ch][y]?.[x] ?? 0;
+            }
+          }
+        }
+      }
+      
+      const blob = new Blob([rawBytes], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'output.raw';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
