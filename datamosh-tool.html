@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datamosh</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background: #fff;
+      color: #000;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #000;
+    }
+    h1 { font-size: 18px; font-weight: 700; }
+    header a {
+      font-size: 12px;
+      color: #FF00FF;
+      text-decoration: none;
+    }
+    header a:hover { text-decoration: underline; }
+    main { max-width: 800px; margin: 0 auto; }
+    .warning-box {
+      border: 2px solid #FF00FF;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .warning-box h2 {
+      font-size: 14px;
+      margin-bottom: 16px;
+      color: #FF00FF;
+    }
+    .warning-box p {
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .warning-box .size {
+      font-size: 24px;
+      font-weight: 700;
+      color: #FF00FF;
+      margin: 16px 0;
+    }
+    .hidden { display: none !important; }
+    button {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+      padding: 12px 24px;
+      border: 2px solid #000;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover { background: #000; color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary {
+      background: #FF00FF;
+      border-color: #FF00FF;
+      color: #fff;
+    }
+    button.primary:hover { background: #cc00cc; border-color: #cc00cc; }
+    .tool-container { margin-top: 24px; }
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #000;
+      margin-bottom: 24px;
+    }
+    .tab {
+      padding: 12px 24px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-bottom: none;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab:hover { background: #f5f5f5; }
+    .tab.active {
+      border-color: #000;
+      background: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .description {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .input-group { margin-bottom: 24px; }
+    .input-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .drop-zone {
+      border: 2px dashed #ccc;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #FF00FF;
+      background: #fff0ff;
+    }
+    .drop-zone.has-file {
+      border-style: solid;
+      border-color: #FF00FF;
+    }
+    .drop-zone p { font-size: 12px; color: #666; }
+    .drop-zone .filename {
+      font-size: 11px;
+      color: #FF00FF;
+      margin-top: 8px;
+    }
+    .video-preview {
+      max-width: 100%;
+      max-height: 200px;
+      margin-top: 12px;
+      display: none;
+    }
+    .video-preview.show { display: block; }
+    .slider-group { margin-bottom: 24px; }
+    .slider-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      background: #eee;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #FF00FF;
+      cursor: pointer;
+    }
+    .slider-value {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+    select {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+      padding: 8px 12px;
+      border: 2px solid #000;
+      background: #fff;
+      cursor: pointer;
+    }
+    .output-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+    .output-row label {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .output-row select { width: auto; }
+    .progress-container {
+      margin-top: 16px;
+      display: none;
+    }
+    .progress-container.show { display: block; }
+    .progress-bar {
+      height: 4px;
+      background: #eee;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #FF00FF;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+    }
+    .output-preview {
+      margin-top: 24px;
+      display: none;
+    }
+    .output-preview.show { display: block; }
+    .output-preview video {
+      width: 100%;
+      max-height: 300px;
+      background: #000;
+    }
+    .download-row { margin-top: 12px; }
+    .constraints {
+      font-size: 10px;
+      color: #999;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Datamosh</h1>
+    <a href="index.html">← Back</a>
+  </header>
+  
+  <main>
+    <div class="warning-box" id="ffmpegWarning">
+      <h2>FFmpeg Required</h2>
+      <p>This tool uses FFmpeg.wasm to perform real datamoshing at the codec level. It needs to download the FFmpeg library to your browser.</p>
+      <div class="size">~25 MB</div>
+      <p>This is a one-time download and will be cached for future visits.</p>
+      <button class="primary" id="loadFfmpegBtn">Load FFmpeg</button>
+      <div class="progress-container" id="loadProgress">
+        <div class="progress-bar"><div class="progress-fill" id="loadProgressFill"></div></div>
+        <div class="progress-text" id="loadProgressText">Loading FFmpeg...</div>
+      </div>
+    </div>
+    
+    <div class="tool-container hidden" id="toolContainer">
+      <div class="tabs">
+        <div class="tab active" data-tab="bloom">Bloom / Melt</div>
+        <div class="tab" data-tab="drag">Pixel Drag</div>
+      </div>
+      
+      <div class="tab-content active" id="bloomTab">
+        <p class="description">Removes I-frames between two clips, causing motion from Clip B to be applied to pixels from Clip A.</p>
+        
+        <div class="input-group">
+          <label>Clip A (Base)</label>
+          <div class="drop-zone" id="bloomDropA">
+            <p>Drop video or click to select</p>
+            <div class="filename" id="bloomFileA"></div>
+          </div>
+          <input type="file" id="bloomInputA" accept="video/*" style="display:none">
+          <video class="video-preview" id="bloomPreviewA" controls muted></video>
+        </div>
+        
+        <div class="input-group">
+          <label>Clip B (Motion Source)</label>
+          <div class="drop-zone" id="bloomDropB">
+            <p>Drop video or click to select</p>
+            <div class="filename" id="bloomFileB"></div>
+          </div>
+          <input type="file" id="bloomInputB" accept="video/*" style="display:none">
+          <video class="video-preview" id="bloomPreviewB" controls muted></video>
+        </div>
+        
+        <div class="slider-group">
+          <label>Blend Duration</label>
+          <input type="range" id="bloomDuration" min="0.5" max="5" step="0.5" value="2">
+          <div class="slider-value"><span id="bloomDurationVal">2</span> seconds</div>
+        </div>
+        
+        <div class="output-row">
+          <label>Format:</label>
+          <select id="bloomFormat">
+            <option value="mp4">MP4</option>
+            <option value="webm">WebM</option>
+            <option value="gif">GIF</option>
+          </select>
+          <button class="primary" id="bloomProcessBtn" disabled>Process</button>
+        </div>
+        
+        <div class="progress-container" id="bloomProgress">
+          <div class="progress-bar"><div class="progress-fill" id="bloomProgressFill"></div></div>
+          <div class="progress-text" id="bloomProgressText">Processing...</div>
+        </div>
+        
+        <div class="output-preview" id="bloomOutput">
+          <video id="bloomOutputVideo" controls></video>
+          <div class="download-row">
+            <button id="bloomDownloadBtn">Download</button>
+          </div>
+        </div>
+        
+        <p class="constraints">Max duration: 10 seconds | Max resolution: 720p | Longer videos will be trimmed</p>
+      </div>
+      
+      <div class="tab-content" id="dragTab">
+        <p class="description">Duplicates P-frames to create pixel smearing along motion vectors.</p>
+        
+        <div class="input-group">
+          <label>Video Clip</label>
+          <div class="drop-zone" id="dragDrop">
+            <p>Drop video or click to select</p>
+            <div class="filename" id="dragFile"></div>
+          </div>
+          <input type="file" id="dragInput" accept="video/*" style="display:none">
+          <video class="video-preview" id="dragPreview" controls muted></video>
+        </div>
+        
+        <div class="slider-group">
+          <label>Intensity</label>
+          <input type="range" id="dragIntensity" min="2" max="10" step="1" value="4">
+          <div class="slider-value"><span id="dragIntensityVal">4</span>x frame repeat</div>
+        </div>
+        
+        <div class="input-group">
+          <label>Frame Selection</label>
+          <select id="dragSelection">
+            <option value="auto">Auto (high motion)</option>
+            <option value="all">All P-frames</option>
+            <option value="interval">Every Nth frame</option>
+          </select>
+        </div>
+        
+        <div class="output-row">
+          <label>Format:</label>
+          <select id="dragFormat">
+            <option value="mp4">MP4</option>
+            <option value="webm">WebM</option>
+            <option value="gif">GIF</option>
+          </select>
+          <button class="primary" id="dragProcessBtn" disabled>Process</button>
+        </div>
+        
+        <div class="progress-container" id="dragProgress">
+          <div class="progress-bar"><div class="progress-fill" id="dragProgressFill"></div></div>
+          <div class="progress-text" id="dragProgressText">Processing...</div>
+        </div>
+        
+        <div class="output-preview" id="dragOutput">
+          <video id="dragOutputVideo" controls></video>
+          <div class="download-row">
+            <button id="dragDownloadBtn">Download</button>
+          </div>
+        </div>
+        
+        <p class="constraints">Max duration: 10 seconds | Max resolution: 720p | Longer videos will be trimmed</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    
+    let ffmpeg = null;
+    let bloomClipAFile = null, bloomClipBFile = null, dragClipFile = null;
+    let bloomOutputUrl = null, dragOutputUrl = null;
+    
+    const ffmpegWarning = document.getElementById('ffmpegWarning');
+    const loadFfmpegBtn = document.getElementById('loadFfmpegBtn');
+    const loadProgress = document.getElementById('loadProgress');
+    const loadProgressFill = document.getElementById('loadProgressFill');
+    const loadProgressText = document.getElementById('loadProgressText');
+    const toolContainer = document.getElementById('toolContainer');
+    
+    loadFfmpegBtn.addEventListener('click', async () => {
+      loadFfmpegBtn.disabled = true;
+      loadProgress.classList.add('show');
+      
+      try {
+        ffmpeg = createFFmpeg({
+          log: true,
+          corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+          progress: ({ ratio }) => {
+            const pct = Math.round(ratio * 100);
+            loadProgressFill.style.width = pct + '%';
+            loadProgressText.textContent = `Loading FFmpeg... ${pct}%`;
+          }
+        });
+        
+        loadProgressText.textContent = 'Loading FFmpeg core...';
+        loadProgressFill.style.width = '10%';
+        
+        await ffmpeg.load();
+        
+        loadProgressFill.style.width = '100%';
+        loadProgressText.textContent = 'FFmpeg loaded successfully!';
+        
+        setTimeout(() => {
+          ffmpegWarning.classList.add('hidden');
+          toolContainer.classList.remove('hidden');
+        }, 500);
+        
+      } catch (err) {
+        loadProgressText.textContent = 'Error loading FFmpeg: ' + err.message;
+        loadFfmpegBtn.disabled = false;
+      }
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+      });
+    });
+    
+    // Drop zone helpers
+    function setupDropZone(dropEl, inputEl, previewEl, fileNameEl, onFile) {
+      dropEl.addEventListener('click', () => inputEl.click());
+      dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('dragover'); });
+      dropEl.addEventListener('dragleave', () => dropEl.classList.remove('dragover'));
+      dropEl.addEventListener('drop', e => {
+        e.preventDefault();
+        dropEl.classList.remove('dragover');
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+      });
+      inputEl.addEventListener('change', () => {
+        if (inputEl.files[0]) handleFile(inputEl.files[0]);
+      });
+      
+      function handleFile(file) {
+        fileNameEl.textContent = file.name;
+        dropEl.classList.add('has-file');
+        previewEl.src = URL.createObjectURL(file);
+        previewEl.classList.add('show');
+        onFile(file);
+      }
+    }
+    
+    // Bloom tab setup
+    const bloomDropA = document.getElementById('bloomDropA');
+    const bloomInputA = document.getElementById('bloomInputA');
+    const bloomPreviewA = document.getElementById('bloomPreviewA');
+    const bloomFileA = document.getElementById('bloomFileA');
+    const bloomDropB = document.getElementById('bloomDropB');
+    const bloomInputB = document.getElementById('bloomInputB');
+    const bloomPreviewB = document.getElementById('bloomPreviewB');
+    const bloomFileB = document.getElementById('bloomFileB');
+    const bloomDuration = document.getElementById('bloomDuration');
+    const bloomDurationVal = document.getElementById('bloomDurationVal');
+    const bloomFormat = document.getElementById('bloomFormat');
+    const bloomProcessBtn = document.getElementById('bloomProcessBtn');
+    const bloomProgress = document.getElementById('bloomProgress');
+    const bloomProgressFill = document.getElementById('bloomProgressFill');
+    const bloomProgressText = document.getElementById('bloomProgressText');
+    const bloomOutput = document.getElementById('bloomOutput');
+    const bloomOutputVideo = document.getElementById('bloomOutputVideo');
+    const bloomDownloadBtn = document.getElementById('bloomDownloadBtn');
+    
+    setupDropZone(bloomDropA, bloomInputA, bloomPreviewA, bloomFileA, f => {
+      bloomClipAFile = f;
+      bloomProcessBtn.disabled = !(bloomClipAFile && bloomClipBFile);
+    });
+    setupDropZone(bloomDropB, bloomInputB, bloomPreviewB, bloomFileB, f => {
+      bloomClipBFile = f;
+      bloomProcessBtn.disabled = !(bloomClipAFile && bloomClipBFile);
+    });
+    
+    bloomDuration.addEventListener('input', () => {
+      bloomDurationVal.textContent = bloomDuration.value;
+    });
+    
+    bloomProcessBtn.addEventListener('click', async () => {
+      if (!ffmpeg || !bloomClipAFile || !bloomClipBFile) return;
+      
+      bloomProcessBtn.disabled = true;
+      bloomProgress.classList.add('show');
+      bloomProgressFill.style.width = '0%';
+      bloomOutput.classList.remove('show');
+      
+      try {
+        const duration = parseFloat(bloomDuration.value);
+        const format = bloomFormat.value;
+        const ext = format === 'gif' ? 'gif' : (format === 'webm' ? 'webm' : 'mp4');
+        
+        ffmpeg.setProgress(({ ratio }) => {
+          const pct = Math.round(ratio * 100);
+          bloomProgressFill.style.width = pct + '%';
+          bloomProgressText.textContent = `Processing... ${pct}%`;
+        });
+        
+        bloomProgressText.textContent = 'Loading clips...';
+        bloomProgressFill.style.width = '10%';
+        
+        ffmpeg.FS('writeFile', 'clipA.mp4', await fetchFile(bloomClipAFile));
+        ffmpeg.FS('writeFile', 'clipB.mp4', await fetchFile(bloomClipBFile));
+        
+        bloomProgressText.textContent = 'Creating bloom effect...';
+        bloomProgressFill.style.width = '30%';
+        
+        const outputArgs = format === 'gif'
+          ? ['-vf', `scale='min(480,iw)':'min(480,ih)':force_original_aspect_ratio=decrease,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`, '-loop', '0']
+          : format === 'webm'
+          ? ['-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0']
+          : ['-c:v', 'libx264', '-preset', 'fast', '-crf', '23'];
+        
+        await ffmpeg.run(
+          '-t', '10',
+          '-i', 'clipA.mp4',
+          '-t', '10',
+          '-i', 'clipB.mp4',
+          '-filter_complex', `[0:v]scale=720:-2[a];[1:v]scale=720:-2[b];[a][b]blend=all_expr='if(gt(T,${duration}),B,A+(B-A)*T/${duration})'`,
+          ...outputArgs,
+          '-t', String(duration + 2),
+          '-an',
+          '-y', `output.${ext}`
+        );
+        
+        bloomProgressText.textContent = 'Finalizing...';
+        bloomProgressFill.style.width = '90%';
+        
+        const data = ffmpeg.FS('readFile', `output.${ext}`);
+        const mimeType = format === 'gif' ? 'image/gif' : (format === 'webm' ? 'video/webm' : 'video/mp4');
+        
+        if (bloomOutputUrl) URL.revokeObjectURL(bloomOutputUrl);
+        bloomOutputUrl = URL.createObjectURL(new Blob([data.buffer], { type: mimeType }));
+        
+        bloomOutputVideo.src = bloomOutputUrl;
+        bloomOutput.classList.add('show');
+        bloomProgressFill.style.width = '100%';
+        bloomProgressText.textContent = 'Complete!';
+        
+        // Cleanup
+        ffmpeg.FS('unlink', 'clipA.mp4');
+        ffmpeg.FS('unlink', 'clipB.mp4');
+        ffmpeg.FS('unlink', `output.${ext}`);
+        
+      } catch (err) {
+        bloomProgressText.textContent = 'Error: ' + err.message;
+      }
+      
+      bloomProcessBtn.disabled = false;
+    });
+    
+    bloomDownloadBtn.addEventListener('click', () => {
+      if (!bloomOutputUrl) return;
+      const ext = bloomFormat.value === 'gif' ? 'gif' : (bloomFormat.value === 'webm' ? 'webm' : 'mp4');
+      const a = document.createElement('a');
+      a.href = bloomOutputUrl;
+      a.download = `datamosh_bloom.${ext}`;
+      a.click();
+    });
+    
+    // Drag tab setup
+    const dragDrop = document.getElementById('dragDrop');
+    const dragInput = document.getElementById('dragInput');
+    const dragPreview = document.getElementById('dragPreview');
+    const dragFile = document.getElementById('dragFile');
+    const dragIntensity = document.getElementById('dragIntensity');
+    const dragIntensityVal = document.getElementById('dragIntensityVal');
+    const dragSelection = document.getElementById('dragSelection');
+    const dragFormat = document.getElementById('dragFormat');
+    const dragProcessBtn = document.getElementById('dragProcessBtn');
+    const dragProgress = document.getElementById('dragProgress');
+    const dragProgressFill = document.getElementById('dragProgressFill');
+    const dragProgressText = document.getElementById('dragProgressText');
+    const dragOutput = document.getElementById('dragOutput');
+    const dragOutputVideo = document.getElementById('dragOutputVideo');
+    const dragDownloadBtn = document.getElementById('dragDownloadBtn');
+    
+    setupDropZone(dragDrop, dragInput, dragPreview, dragFile, f => {
+      dragClipFile = f;
+      dragProcessBtn.disabled = false;
+    });
+    
+    dragIntensity.addEventListener('input', () => {
+      dragIntensityVal.textContent = dragIntensity.value;
+    });
+    
+    dragProcessBtn.addEventListener('click', async () => {
+      if (!ffmpeg || !dragClipFile) return;
+      
+      dragProcessBtn.disabled = true;
+      dragProgress.classList.add('show');
+      dragProgressFill.style.width = '0%';
+      dragOutput.classList.remove('show');
+      
+      try {
+        const intensity = parseInt(dragIntensity.value);
+        const selection = dragSelection.value;
+        const format = dragFormat.value;
+        const ext = format === 'gif' ? 'gif' : (format === 'webm' ? 'webm' : 'mp4');
+        
+        ffmpeg.setProgress(({ ratio }) => {
+          const pct = Math.round(ratio * 100);
+          dragProgressFill.style.width = pct + '%';
+          dragProgressText.textContent = `Processing... ${pct}%`;
+        });
+        
+        dragProgressText.textContent = 'Loading video...';
+        dragProgressFill.style.width = '10%';
+        
+        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(dragClipFile));
+        
+        dragProgressText.textContent = 'Creating pixel drag effect...';
+        dragProgressFill.style.width = '30%';
+        
+        let filterComplex;
+        if (selection === 'all') {
+          filterComplex = `tblend=all_mode=average,loop=${intensity}:1:0`;
+        } else if (selection === 'interval') {
+          filterComplex = `select='mod(n\\,${intensity})',tblend=all_mode=average`;
+        } else {
+          filterComplex = `minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,tblend=all_mode=average`;
+        }
+        
+        const outputArgs = format === 'gif'
+          ? ['-vf', `scale='min(480,iw)':'min(480,ih)':force_original_aspect_ratio=decrease,${filterComplex},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`, '-loop', '0']
+          : format === 'webm'
+          ? ['-vf', `scale=720:-2,${filterComplex}`, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0']
+          : ['-vf', `scale=720:-2,${filterComplex}`, '-c:v', 'libx264', '-preset', 'fast', '-crf', '23'];
+        
+        await ffmpeg.run(
+          '-t', '10',
+          '-i', 'input.mp4',
+          ...outputArgs,
+          '-an',
+          '-y', `output.${ext}`
+        );
+        
+        dragProgressText.textContent = 'Finalizing...';
+        dragProgressFill.style.width = '90%';
+        
+        const data = ffmpeg.FS('readFile', `output.${ext}`);
+        const mimeType = format === 'gif' ? 'image/gif' : (format === 'webm' ? 'video/webm' : 'video/mp4');
+        
+        if (dragOutputUrl) URL.revokeObjectURL(dragOutputUrl);
+        dragOutputUrl = URL.createObjectURL(new Blob([data.buffer], { type: mimeType }));
+        
+        dragOutputVideo.src = dragOutputUrl;
+        dragOutput.classList.add('show');
+        dragProgressFill.style.width = '100%';
+        dragProgressText.textContent = 'Complete!';
+        
+        // Cleanup
+        ffmpeg.FS('unlink', 'input.mp4');
+        ffmpeg.FS('unlink', `output.${ext}`);
+        
+      } catch (err) {
+        dragProgressText.textContent = 'Error: ' + err.message;
+      }
+      
+      dragProcessBtn.disabled = false;
+    });
+    
+    dragDownloadBtn.addEventListener('click', () => {
+      if (!dragOutputUrl) return;
+      const ext = dragFormat.value === 'gif' ? 'gif' : (dragFormat.value === 'webm' ? 'webm' : 'mp4');
+      const a = document.createElement('a');
+      a.href = dragOutputUrl;
+      a.download = `datamosh_drag.${ext}`;
+      a.click();
+    });
+  </script>
+</body>
+</html>
