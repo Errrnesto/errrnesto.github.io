@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datafolding Synthesizer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Roboto Mono', monospace; background: #1a1a1a; color: #e0e0e0; min-height: 100vh; padding: 16px; }
+h1 { color: #ff00ff; font-size: 18px; margin-bottom: 8px; }
+.subtitle { font-size: 11px; color: #888; margin-bottom: 24px; }
+label { font-size: 12px; display: block; margin-bottom: 8px; }
+button { font-family: inherit; cursor: pointer; border: none; }
+button:disabled { cursor: not-allowed; }
+input[type="range"] { accent-color: #ff00ff; }
+select { font-family: inherit; background: #333; color: #e0e0e0; border: 1px solid #666; padding: 2px 4px; font-size: 9px; }
+.magenta { color: #ff00ff; }
+.grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; max-height: 200px; overflow-y: auto; padding: 8px; background: #222; border: 1px solid #333; }
+.width-btn { background: #333; color: #e0e0e0; padding: 6px 4px; font-size: 11px; }
+.width-btn.active { background: #ff00ff; color: #000; }
+.info-box { padding: 16px; background: #222; border: 1px solid #ff00ff; margin-bottom: 24px; max-width: 400px; }
+.info-box p { font-size: 11px; margin: 4px 0; }
+.info-box span { color: #888; }
+.confirm-btn { background: #ff00ff; color: #000; padding: 12px 32px; font-size: 14px; font-weight: bold; }
+.step2 { display: none; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.header h1 { font-size: 16px; margin: 0; }
+.toolbar { display: flex; gap: 4px; flex-wrap: wrap; }
+.tool-btn { background: #333; color: #e0e0e0; border: 1px solid #666; padding: 5px 8px; font-size: 12px; }
+.tool-btn:disabled { background: #222; color: #666; }
+.main-content { display: flex; gap: 24px; flex-wrap: wrap; }
+.left-panel { flex: 0 0 320px; min-width: 280px; }
+.right-panel { flex: 1; min-width: 280px; }
+.dimension-info { padding: 8px; background: #222; border: 1px solid #333; margin-bottom: 12px; font-size: 10px; }
+.section { margin-bottom: 12px; }
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.section-label { font-size: 10px; color: #ff00ff; }
+.channel-btns { display: flex; gap: 3px; }
+.channel-btn { flex: 1; padding: 6px 2px; font-size: 11px; font-weight: bold; border-width: 2px; border-style: solid; }
+.routing-box { margin-top: 6px; padding: 6px; background: #2a2a2a; font-size: 9px; }
+.mode-btns { display: flex; gap: 4px; margin-bottom: 8px; }
+.mode-btn { flex: 1; padding: 6px; font-size: 9px; }
+.mode-btn.active { background: #ff00ff; color: #000; }
+.mode-btn:not(.active) { background: #333; color: #e0e0e0; }
+.freq-group { margin-bottom: 6px; }
+.freq-group p { font-size: 8px; color: #666; margin: 0 0 3px; }
+.freq-btns { display: flex; flex-wrap: wrap; gap: 2px; max-height: 50px; overflow-y: auto; }
+.freq-btn { background: #333; color: #e0e0e0; padding: 2px 4px; font-size: 8px; }
+.freq-btn.active { background: #ff00ff; color: #000; }
+.freq-info { padding: 4px; background: #2a2a2a; font-size: 8px; margin-top: 4px; }
+.waveform-btns { display: flex; gap: 3px; flex-wrap: wrap; }
+.waveform-btn { background: #333; color: #e0e0e0; padding: 3px 6px; font-size: 8px; }
+.waveform-btn.active { background: #ff00ff; color: #000; }
+.amplitude-section { margin-bottom: 12px; }
+.amplitude-section label { font-size: 9px; color: #ff00ff; }
+.amplitude-section input { width: 100%; }
+.selection-box { padding: 8px; background: #222; border: 1px solid #ff00ff; margin-bottom: 12px; }
+.selection-info { font-size: 8px; color: #888; margin: 0 0 6px; }
+.selection-btns { display: flex; flex-wrap: wrap; gap: 3px; }
+.sel-btn { background: #333; color: #e0e0e0; border: 1px solid #666; padding: 5px 7px; font-size: 8px; display: flex; align-items: center; gap: 2px; }
+.fill-btn { background: #ff00ff; color: #000; border: none; }
+.fill-btn:disabled { background: #444; color: #666; }
+.fill-btn.continuous { background: #cc00cc; }
+.effects-box { padding: 8px; background: #222; border: 1px solid #333; margin-bottom: 12px; }
+.effects-label { font-size: 9px; color: #ff00ff; display: block; margin-bottom: 6px; }
+.effect-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.effect-name { font-size: 8px; color: #888; width: 55px; }
+.effect-controls { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.effect-control { display: flex; align-items: center; gap: 4px; }
+.effect-control span:first-child { font-size: 7px; color: #666; width: 25px; }
+.effect-control input { flex: 1; }
+.effect-control span:last-child { font-size: 7px; color: #888; width: 35px; }
+.apply-btn { background: #ff00ff; color: #000; padding: 8px; font-size: 8px; }
+.apply-btn:disabled { background: #444; color: #666; }
+.playback-btns { display: flex; gap: 6px; margin-bottom: 6px; }
+.play-btn { flex: 1; background: #ff00ff; color: #000; padding: 10px; font-size: 12px; font-weight: bold; }
+.play-btn:disabled { background: #444; color: #666; }
+.stop-btn { background: #222; color: #666; border: 1px solid #ff00ff; padding: 10px 14px; font-size: 12px; font-weight: bold; }
+.stop-btn.active { background: #333; color: #e0e0e0; }
+.export-btn { background: #333; color: #e0e0e0; border: 1px solid #666; padding: 10px; }
+.routing-summary { font-size: 7px; color: #666; }
+.routing-summary span { margin-right: 4px; }
+.canvas-container { display: flex; align-items: flex-start; gap: 10px; }
+.time-display { width: 65px; text-align: right; font-size: 10px; padding-top: 4px; flex-shrink: 0; }
+.time-current { color: #ff00ff; }
+.time-total { color: #666; margin-top: 3px; }
+.canvas-wrapper { border: 1px solid #ff00ff; display: inline-block; cursor: crosshair; }
+#display-canvas { display: block; image-rendering: pixelated; }
+.canvas-info { font-size: 8px; color: #888; margin-top: 6px; margin-left: 75px; }
+.footer-link { margin-top: 48px; font-size: 10px; }
+.footer-link a { color: #ff00ff; text-decoration: none; }
+.small-btn { background: #333; color: #e0e0e0; border: 1px solid #666; padding: 3px 6px; font-size: 8px; }
+.small-btn.active { background: #ffff00; color: #000; }
+.gradient-btns { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 8px; }
+.dir-btns { display: flex; gap: 4px; }
+.dir-btn { flex: 1; padding: 4px; font-size: 8px; background: #333; color: #e0e0e0; }
+.dir-btn.active { background: #ff00ff; color: #000; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="step1">
+  <h1>DATAFOLDING SYNTHESIZER <a href="datafolding-tutorial.html" target="_blank" title="Tutorial" style="color: #888; text-decoration: none; font-size: 14px; margin-left: 8px; vertical-align: middle;">ⓘ</a></h1>
+  <p class="subtitle">Step 1: Choose dimensions</p>
+  
+  <div style="margin-bottom: 24px;">
+    <label>WIDTH</label>
+    <div class="grid-container" id="width-grid"></div>
+  </div>
+  
+  <div style="margin-bottom: 24px;">
+    <label>HEIGHT: <span id="height-label">441</span> rows = <span id="height-time">0.441s</span></label>
+    <input type="range" id="height-slider" min="10" max="10000" value="441" style="width: 100%; max-width: 400px;">
+    <input type="text" id="height-input" value="441" style="width: 80px; margin-left: 12px; background: #333; color: #e0e0e0; border: 1px solid #666; padding: 4px; font-family: inherit; font-size: 11px;">
+  </div>
+  
+  <div class="info-box">
+    <p><span>Image:</span> <span id="info-dimensions">441 × 441</span> px (RGBA)</p>
+    <p><span>Duration:</span> <span id="info-duration">4.410s</span></p>
+    <p><span>Frequencies:</span> <span id="info-freqs">12</span></p>
+    <p><span>Memory:</span> <span id="info-memory">0.8</span> MB</p>
+    <p><span>Undo levels:</span> <span id="info-undo">20</span></p>
+  </div>
+  
+  <button class="confirm-btn" id="confirm-btn">CONFIRM →</button>
+  <p class="footer-link" style="position: fixed; bottom: 16px; right: 16px; margin: 0;"><a href="https://ernestopena.com" target="_blank" rel="noopener noreferrer">ernestopena.com</a></p>
+</div>
+
+<div id="step2" class="step2">
+  <div class="header">
+    <h1>DATAFOLDING SYNTHESIZER <a href="datafolding-tutorial.html" target="_blank" title="Tutorial" style="color: #888; text-decoration: none; font-size: 14px; margin-left: 8px; vertical-align: middle;">ⓘ</a></h1>
+    <div class="toolbar">
+      <button class="tool-btn" id="undo-btn" disabled title="Undo">↶</button>
+      <button class="tool-btn" id="redo-btn" disabled title="Redo">↷</button>
+      <button class="tool-btn" id="copy-btn" title="Copy">⧉</button>
+      <button class="tool-btn" id="paste-btn" disabled title="Paste">⧠</button>
+      <button class="tool-btn" id="import-btn" title="Import">↑</button>
+      <button class="tool-btn" id="export-btn" title="Export RGBA">↓</button>
+      <button class="tool-btn" id="back-btn" style="border-color: #ff00ff;">← DIM</button>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+  </div>
+  
+  <div class="main-content">
+    <div class="left-panel">
+      <div class="dimension-info"><span class="magenta" id="dim-display">441×441</span> = <span id="time-display">4.410s</span></div>
+      
+      <div class="section">
+        <div class="section-header">
+          <label class="section-label">CHANNEL</label>
+          <button class="small-btn" id="grid-btn">GRID</button>
+          <button class="small-btn" id="view-btn">RGBA</button>
+        </div>
+        <div class="channel-btns" id="channel-btns"></div>
+        <div class="routing-box">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span id="routing-channel" style="color: #ff4444;">R</span> →
+            <select id="routing-select"></select>
+          </div>
+          <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="checkbox" id="alpha-envelope" checked style="accent-color: #ff00ff; width: 12px; height: 12px;">
+            <span style="color: #888;">Alpha = envelope</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="mode-btns">
+          <button class="mode-btn active" id="waveform-mode">WAVEFORM</button>
+          <button class="mode-btn" id="gradient-mode">⬔ GRADIENT</button>
+        </div>
+        <div id="waveform-panel">
+          <label class="section-label" style="margin-bottom: 6px;">FREQUENCIES</label>
+          <div id="freq-groups"></div>
+          <div class="freq-info hidden" id="freq-info"></div>
+          <div style="margin-top: 8px;">
+            <label style="font-size: 9px; color: #888; display: block; margin-bottom: 4px;">WAVEFORM</label>
+            <div class="waveform-btns" id="waveform-btns"></div>
+          </div>
+        </div>
+        <div id="gradient-panel" class="hidden">
+          <label class="section-label" style="margin-bottom: 6px;">GRADIENT TYPE</label>
+          <div class="gradient-btns" id="gradient-btns"></div>
+          <label style="font-size: 9px; color: #888; display: block; margin-bottom: 4px;">DIRECTION</label>
+          <div class="dir-btns">
+            <button class="dir-btn active" id="dir-horizontal">HORIZONTAL</button>
+            <button class="dir-btn" id="dir-vertical">VERTICAL</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="amplitude-section">
+        <label>AMPLITUDE: <span id="amp-value">100</span>%</label>
+        <input type="range" id="amplitude" min="0" max="1" step="0.05" value="1">
+      </div>
+      
+      <div class="selection-box">
+        <p class="selection-info"><span id="selection-info">Click & drag to select</span><span id="selection-channel" style="color: #ff4444; margin-left: 6px;">→ R</span></p>
+        <div class="selection-btns">
+          <button class="sel-btn" id="select-all">⛶ ALL</button>
+          <button class="sel-btn fill-btn" id="fill-row" disabled>⊞ FILL</button>
+          <button class="sel-btn fill-btn continuous" id="fill-cont" disabled>⬒ FILL</button>
+          <button class="sel-btn" id="clear-sel" disabled>⌫ CLR</button>
+        </div>
+      </div>
+      
+      <div class="effects-box">
+        <label class="effects-label">EFFECTS (apply to <span id="fx-channel">R</span>)</label>
+        <div class="effect-row">
+          <span class="effect-name">DISTORT</span>
+          <div class="effect-controls">
+            <div class="effect-control">
+              <span>DRV</span>
+              <input type="range" id="dist-drive" min="0" max="1" step="0.05" value="0.5">
+              <span id="dist-val">50%</span>
+            </div>
+          </div>
+          <button class="apply-btn" id="apply-dist" disabled>APPLY</button>
+        </div>
+        <div class="effect-row">
+          <span class="effect-name">DELAY</span>
+          <div class="effect-controls">
+            <div class="effect-control">
+              <span>TIME</span>
+              <input type="range" id="delay-time" min="0.01" max="0.5" step="0.01" value="0.25">
+              <span id="delay-time-val">250ms</span>
+            </div>
+            <div class="effect-control">
+              <span>FB</span>
+              <input type="range" id="delay-fb" min="0" max="0.9" step="0.05" value="0.4">
+              <span id="delay-fb-val">40%</span>
+            </div>
+            <div class="effect-control">
+              <span>MIX</span>
+              <input type="range" id="delay-mix" min="0.1" max="1" step="0.05" value="0.5">
+              <span id="delay-mix-val">50%</span>
+            </div>
+          </div>
+          <button class="apply-btn" id="apply-delay" disabled>APPLY</button>
+        </div>
+        <div class="effect-row" style="margin-bottom: 0;">
+          <span class="effect-name">REVERB</span>
+          <div class="effect-controls">
+            <div class="effect-control">
+              <span>DEC</span>
+              <input type="range" id="reverb-decay" min="0.1" max="0.95" step="0.05" value="0.5">
+              <span id="reverb-decay-val">50%</span>
+            </div>
+            <div class="effect-control">
+              <span>MIX</span>
+              <input type="range" id="reverb-mix" min="0.1" max="1" step="0.05" value="0.3">
+              <span id="reverb-mix-val">30%</span>
+            </div>
+          </div>
+          <button class="apply-btn" id="apply-reverb" disabled>APPLY</button>
+        </div>
+      </div>
+      
+      <div class="playback-btns">
+        <button class="play-btn" id="play-btn" disabled>▶</button>
+        <button class="stop-btn" id="stop-btn">■</button>
+        <button class="export-btn" id="export-audio" title="Export audio">↓</button>
+      </div>
+      <div class="routing-summary" id="routing-summary"></div>
+    </div>
+    
+    <div class="right-panel">
+      <div class="canvas-container">
+        <div class="time-display">
+          <div class="time-current" id="playback-time"></div>
+          <div class="time-total" id="total-time">/ 0.000s</div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="display-canvas"></canvas>
+        </div>
+      </div>
+      <p class="canvas-info"><span id="view-info">RGBA</span> | <span id="alpha-info">Alpha=envelope</span></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAMPLE_RATE = 44100;
+const SILENCE = 127;
+const MAX_HISTORY = 20;
+const CHANNELS = ['R', 'G', 'B', 'A', 'M'];
+const CHANNEL_COLORS = { R: '#ff4444', G: '#44ff44', B: '#4488ff', A: '#ffffff', M: '#aaaaaa' };
+const AUDIO_OUTPUTS = ['left', 'right', 'center', 'none'];
+const WAVEFORMS = [
+  { id: 'sine', name: 'SINE', fn: (p) => Math.sin(p * 2 * Math.PI) },
+  { id: 'square', name: 'SQR', fn: (p) => p < 0.5 ? 1 : -1 },
+  { id: 'sawtooth', name: 'SAW', fn: (p) => 2 * p - 1 },
+  { id: 'triangle', name: 'TRI', fn: (p) => p < 0.5 ? 4 * p - 1 : 3 - 4 * p }
+];
+const GRADIENTS = [
+  { id: 'fadeIn', name: 'FADE IN', fn: (t) => t },
+  { id: 'fadeOut', name: 'FADE OUT', fn: (t) => 1 - t },
+  { id: 'fadeInOut', name: 'IN/OUT', fn: (t) => t < 0.5 ? t * 2 : (1 - t) * 2 },
+  { id: 'fadeOutIn', name: 'OUT/IN', fn: (t) => t < 0.5 ? 1 - t * 2 : (t - 0.5) * 2 },
+  { id: 'expIn', name: 'EXP IN', fn: (t) => t * t },
+  { id: 'expOut', name: 'EXP OUT', fn: (t) => 1 - (1 - t) * (1 - t) }
+];
+
+let state = {
+  width: 441, height: 441,
+  channelData: { R: null, G: null, B: null, A: null, M: null },
+  activeChannel: 'R',
+  audioRouting: { R: 'right', G: 'left', B: 'center', A: 'none', M: 'center' },
+  viewMode: 'composite',
+  alphaAsEnvelope: true,
+  history: [], historyIndex: -1,
+  clipboard: null,
+  fillMode: 'waveform',
+  selectedGradient: 'fadeIn',
+  gradientDirection: 'horizontal',
+  selectedWaveform: 'sine',
+  selectedWavelength: null,
+  amplitude: 1.0,
+  selection: null,
+  isPlaying: false, isPaused: false,
+  playbackPosition: 0,
+  showGrid: false
+};
+
+let audioContext = null, sourceNode = null, animationFrame = null;
+let playbackStartTime = null, pausedAt = 0;
+let isSelecting = false, selectionStart = null;
+
+const getDivisors = (n) => {
+  const d = [];
+  for (let i = 1; i <= Math.sqrt(n); i++) {
+    if (n % i === 0) { d.push(i); if (i !== n / i) d.push(n / i); }
+  }
+  return d.sort((a, b) => a - b);
+};
+
+const VALID_WIDTHS = getDivisors(SAMPLE_RATE).filter(d => d >= 100 && d <= 6300);
+
+const formatTime = (s) => {
+  if (s < 0.001) return `${(s * 1e6).toFixed(1)}µs`;
+  if (s < 1) return `${(s * 1000).toFixed(3)}ms`;
+  const m = Math.floor(s / 60), sec = s % 60, ws = Math.floor(sec), ms = Math.round((sec - ws) * 1000);
+  return m > 0 ? `${m}:${ws.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}` : `${ws}.${ms.toString().padStart(3, '0')}s`;
+};
+
+const getWavelengthOptions = () => {
+  const factors = getDivisors(state.width);
+  return factors.filter(f => f >= 2 && f <= state.width).map(wl => ({
+    wavelength: wl, frequency: SAMPLE_RATE / wl,
+    label: `${SAMPLE_RATE / wl >= 1000 ? ((SAMPLE_RATE / wl) / 1000).toFixed(2) + 'k' : (SAMPLE_RATE / wl).toFixed(1)}`
+  })).filter(o => o.frequency >= 20 && o.frequency <= 20000).sort((a, b) => a.frequency - b.frequency);
+};
+
+function initStep1() {
+  const grid = document.getElementById('width-grid');
+  grid.innerHTML = VALID_WIDTHS.map(w => `<button class="width-btn${w === state.width ? ' active' : ''}" data-width="${w}">${w}</button>`).join('');
+  grid.addEventListener('click', (e) => {
+    if (e.target.dataset.width) {
+      state.width = parseInt(e.target.dataset.width);
+      document.querySelectorAll('.width-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.width) === state.width));
+      updateStep1Info();
+    }
+  });
+  
+  const slider = document.getElementById('height-slider');
+  const input = document.getElementById('height-input');
+  slider.addEventListener('input', () => { state.height = parseInt(slider.value); input.value = state.height; updateStep1Info(); });
+  input.addEventListener('change', () => { state.height = Math.min(10000, Math.max(10, parseInt(input.value) || 10)); input.value = state.height; slider.value = state.height; updateStep1Info(); });
+  
+  document.getElementById('confirm-btn').addEventListener('click', initStep2);
+  updateStep1Info();
+}
+
+function updateStep1Info() {
+  const { width, height } = state;
+  document.getElementById('height-label').textContent = height;
+  document.getElementById('height-time').textContent = formatTime(width * height / SAMPLE_RATE);
+  document.getElementById('info-dimensions').textContent = `${width} × ${height}`;
+  document.getElementById('info-duration').textContent = formatTime(width * height / SAMPLE_RATE);
+  document.getElementById('info-freqs').textContent = getDivisors(width).filter(f => f >= 2 && SAMPLE_RATE / f >= 20 && SAMPLE_RATE / f <= 20000).length;
+  document.getElementById('info-memory').textContent = ((width * height * 4) / (1024 * 1024)).toFixed(1);
+  document.getElementById('info-undo').textContent = width * height > 5e6 ? 5 : width * height > 1e6 ? 10 : 20;
+}
+
+function initStep2() {
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  
+  const { width, height } = state;
+  const size = width * height;
+  state.channelData = {
+    R: new Uint8Array(size).fill(SILENCE), G: new Uint8Array(size).fill(SILENCE),
+    B: new Uint8Array(size).fill(SILENCE), A: new Uint8Array(size).fill(255), M: new Uint8Array(size).fill(SILENCE)
+  };
+  saveToHistory();
+  
+  setupStep2UI();
+  render();
+}
+
+function setupStep2UI() {
+  document.getElementById('dim-display').textContent = `${state.width}×${state.height}`;
+  document.getElementById('time-display').textContent = formatTime(state.width * state.height / SAMPLE_RATE);
+  document.getElementById('total-time').textContent = `/ ${formatTime(state.width * state.height / SAMPLE_RATE)}`;
+  
+  // Channel buttons
+  const chBtns = document.getElementById('channel-btns');
+  chBtns.innerHTML = CHANNELS.map(ch => `<button class="channel-btn" data-ch="${ch}" style="background:${state.activeChannel === ch ? CHANNEL_COLORS[ch] : '#333'};color:${state.activeChannel === ch ? '#000' : CHANNEL_COLORS[ch]};border-color:${CHANNEL_COLORS[ch]}">${ch}</button>`).join('');
+  chBtns.addEventListener('click', (e) => { if (e.target.dataset.ch) { state.activeChannel = e.target.dataset.ch; updateChannelUI(); render(); } });
+  
+  // Routing select
+  const routeSel = document.getElementById('routing-select');
+  routeSel.innerHTML = AUDIO_OUTPUTS.map(o => `<option value="${o}">${o.toUpperCase()}</option>`).join('');
+  routeSel.addEventListener('change', () => { state.audioRouting[state.activeChannel] = routeSel.value; updateRoutingSummary(); });
+  
+  document.getElementById('alpha-envelope').addEventListener('change', (e) => { state.alphaAsEnvelope = e.target.checked; updateRoutingSummary(); render(); });
+  
+  // View & Grid buttons
+  document.getElementById('view-btn').addEventListener('click', () => { state.viewMode = state.viewMode === 'composite' ? 'single' : 'composite'; updateViewBtn(); render(); });
+  document.getElementById('grid-btn').addEventListener('click', () => { state.showGrid = !state.showGrid; document.getElementById('grid-btn').classList.toggle('active', state.showGrid); render(); });
+  
+  // Fill mode
+  document.getElementById('waveform-mode').addEventListener('click', () => { state.fillMode = 'waveform'; updateFillModeUI(); });
+  document.getElementById('gradient-mode').addEventListener('click', () => { state.fillMode = 'gradient'; updateFillModeUI(); });
+  
+  // Waveforms
+  const waveBtns = document.getElementById('waveform-btns');
+  waveBtns.innerHTML = WAVEFORMS.map(w => `<button class="waveform-btn${w.id === state.selectedWaveform ? ' active' : ''}" data-wf="${w.id}">${w.name}</button>`).join('');
+  waveBtns.addEventListener('click', (e) => { if (e.target.dataset.wf) { state.selectedWaveform = e.target.dataset.wf; document.querySelectorAll('.waveform-btn').forEach(b => b.classList.toggle('active', b.dataset.wf === state.selectedWaveform)); } });
+  
+  // Gradients
+  const gradBtns = document.getElementById('gradient-btns');
+  gradBtns.innerHTML = GRADIENTS.map(g => `<button class="waveform-btn${g.id === state.selectedGradient ? ' active' : ''}" data-gr="${g.id}">${g.name}</button>`).join('');
+  gradBtns.addEventListener('click', (e) => { if (e.target.dataset.gr) { state.selectedGradient = e.target.dataset.gr; document.querySelectorAll('#gradient-btns .waveform-btn').forEach(b => b.classList.toggle('active', b.dataset.gr === state.selectedGradient)); } });
+  
+  document.getElementById('dir-horizontal').addEventListener('click', () => { state.gradientDirection = 'horizontal'; updateDirBtns(); });
+  document.getElementById('dir-vertical').addEventListener('click', () => { state.gradientDirection = 'vertical'; updateDirBtns(); });
+  
+  // Amplitude
+  document.getElementById('amplitude').addEventListener('input', (e) => { state.amplitude = parseFloat(e.target.value); document.getElementById('amp-value').textContent = Math.round(state.amplitude * 100); });
+  
+  // Selection buttons
+  document.getElementById('select-all').addEventListener('click', () => { state.selection = { x: 0, y: 0, w: state.width, h: state.height }; updateSelectionUI(); render(); });
+  document.getElementById('fill-row').addEventListener('click', () => fillSelection(true));
+  document.getElementById('fill-cont').addEventListener('click', () => fillSelection(false));
+  document.getElementById('clear-sel').addEventListener('click', clearSelection);
+  
+  // Effects
+  ['dist-drive', 'delay-time', 'delay-fb', 'delay-mix', 'reverb-decay', 'reverb-mix'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateEffectValues);
+  });
+  document.getElementById('apply-dist').addEventListener('click', applyDistortion);
+  document.getElementById('apply-delay').addEventListener('click', applyDelay);
+  document.getElementById('apply-reverb').addEventListener('click', applyReverb);
+  
+  // Playback
+  document.getElementById('play-btn').addEventListener('click', () => state.isPlaying ? pauseAudio() : playAudio());
+  document.getElementById('stop-btn').addEventListener('click', stopAudio);
+  document.getElementById('export-audio').addEventListener('click', exportAudioRaw);
+  
+  // Toolbar
+  document.getElementById('undo-btn').addEventListener('click', undo);
+  document.getElementById('redo-btn').addEventListener('click', redo);
+  document.getElementById('copy-btn').addEventListener('click', copyChannel);
+  document.getElementById('paste-btn').addEventListener('click', pasteChannel);
+  document.getElementById('import-btn').addEventListener('click', () => document.getElementById('file-input').click());
+  document.getElementById('file-input').addEventListener('change', importImage);
+  document.getElementById('export-btn').addEventListener('click', exportRaw);
+  document.getElementById('back-btn').addEventListener('click', () => { document.getElementById('step1').style.display = 'block'; document.getElementById('step2').style.display = 'none'; });
+  
+  // Canvas events
+  const canvas = document.getElementById('display-canvas');
+  canvas.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+  
+  updateFrequencies();
+  updateChannelUI();
+  updateRoutingSummary();
+  updateFillModeUI();
+  updateEffectValues();
+}
+
+function updateFrequencies() {
+  const options = getWavelengthOptions();
+  const groups = { low: [], mid: [], high: [] };
+  options.forEach(o => { if (o.frequency < 200) groups.low.push(o); else if (o.frequency < 2000) groups.mid.push(o); else groups.high.push(o); });
+  
+  const container = document.getElementById('freq-groups');
+  container.innerHTML = Object.entries(groups).filter(([_, arr]) => arr.length > 0).map(([name, arr]) => `
+    <div class="freq-group"><p>${name.toUpperCase()}</p><div class="freq-btns">${arr.map(o => `<button class="freq-btn" data-wl="${o.wavelength}" title="λ${o.wavelength}px">${o.label}</button>`).join('')}</div></div>
+  `).join('');
+  
+  container.addEventListener('click', (e) => {
+    if (e.target.dataset.wl) {
+      state.selectedWavelength = parseInt(e.target.dataset.wl);
+      document.querySelectorAll('.freq-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.wl) === state.selectedWavelength));
+      const info = document.getElementById('freq-info');
+      info.classList.remove('hidden');
+      info.innerHTML = `<span class="magenta">${(SAMPLE_RATE / state.selectedWavelength).toFixed(1)}Hz</span> <span style="color:#666">λ${state.selectedWavelength}px</span>`;
+      updateSelectionUI();
+    }
+  });
+}
+
+function updateChannelUI() {
+  const ch = state.activeChannel;
+  document.querySelectorAll('.channel-btn').forEach(b => {
+    const c = b.dataset.ch;
+    b.style.background = c === ch ? CHANNEL_COLORS[c] : '#333';
+    b.style.color = c === ch ? '#000' : CHANNEL_COLORS[c];
+  });
+  document.getElementById('routing-channel').style.color = CHANNEL_COLORS[ch];
+  document.getElementById('routing-channel').textContent = ch;
+  document.getElementById('routing-select').value = state.audioRouting[ch];
+  document.getElementById('routing-select').disabled = ch === 'A' && state.alphaAsEnvelope;
+  document.getElementById('selection-channel').style.color = CHANNEL_COLORS[ch];
+  document.getElementById('selection-channel').textContent = `→ ${ch}`;
+  document.getElementById('fx-channel').textContent = ch;
+  updateViewBtn();
+}
+
+function updateViewBtn() {
+  document.getElementById('view-btn').textContent = state.viewMode === 'composite' ? 'RGBA' : state.activeChannel;
+  document.getElementById('view-info').textContent = state.viewMode === 'composite' ? 'RGBA' : state.activeChannel;
+  document.getElementById('alpha-info').textContent = state.alphaAsEnvelope ? 'Alpha=envelope' : 'Alpha=channel';
+}
+
+function updateRoutingSummary() {
+  const summary = CHANNELS.map(ch => `<span style="color:${CHANNEL_COLORS[ch]}">${ch}</span>→${ch === 'A' && state.alphaAsEnvelope ? 'ENV' : state.audioRouting[ch][0].toUpperCase()}`).join(' ');
+  document.getElementById('routing-summary').innerHTML = summary + (state.clipboard ? ` <span class="magenta">📋 ${state.clipboard.width}×${state.clipboard.height}</span>` : '');
+}
+
+function updateFillModeUI() {
+  document.getElementById('waveform-mode').classList.toggle('active', state.fillMode === 'waveform');
+  document.getElementById('gradient-mode').classList.toggle('active', state.fillMode === 'gradient');
+  document.getElementById('waveform-panel').classList.toggle('hidden', state.fillMode !== 'waveform');
+  document.getElementById('gradient-panel').classList.toggle('hidden', state.fillMode !== 'gradient');
+  updateSelectionUI();
+}
+
+function updateDirBtns() {
+  document.getElementById('dir-horizontal').classList.toggle('active', state.gradientDirection === 'horizontal');
+  document.getElementById('dir-vertical').classList.toggle('active', state.gradientDirection === 'vertical');
+}
+
+function updateSelectionUI() {
+  const sel = state.selection;
+  const canFill = sel && (state.fillMode === 'gradient' || state.selectedWavelength);
+  document.getElementById('selection-info').textContent = sel ? `${sel.w}×${sel.h}px = ${formatTime(sel.w * sel.h / SAMPLE_RATE)}` : 'Click & drag to select';
+  document.getElementById('fill-row').disabled = !canFill;
+  document.getElementById('fill-cont').disabled = !canFill;
+  document.getElementById('clear-sel').disabled = !sel;
+  document.getElementById('apply-dist').disabled = !sel;
+  document.getElementById('apply-delay').disabled = !sel;
+  document.getElementById('apply-reverb').disabled = !sel;
+}
+
+function updateEffectValues() {
+  document.getElementById('dist-val').textContent = Math.round(parseFloat(document.getElementById('dist-drive').value) * 100) + '%';
+  document.getElementById('delay-time-val').textContent = Math.round(parseFloat(document.getElementById('delay-time').value) * 1000) + 'ms';
+  document.getElementById('delay-fb-val').textContent = Math.round(parseFloat(document.getElementById('delay-fb').value) * 100) + '%';
+  document.getElementById('delay-mix-val').textContent = Math.round(parseFloat(document.getElementById('delay-mix').value) * 100) + '%';
+  document.getElementById('reverb-decay-val').textContent = Math.round(parseFloat(document.getElementById('reverb-decay').value) * 100) + '%';
+  document.getElementById('reverb-mix-val').textContent = Math.round(parseFloat(document.getElementById('reverb-mix').value) * 100) + '%';
+}
+
+function updateHistoryButtons() {
+  document.getElementById('undo-btn').disabled = state.historyIndex <= 0;
+  document.getElementById('redo-btn').disabled = state.historyIndex >= state.history.length - 1;
+}
+
+function updatePlaybackUI() {
+  const playing = state.isPlaying, paused = state.isPaused;
+  document.getElementById('play-btn').textContent = playing ? '❚❚' : '▶';
+  document.getElementById('play-btn').disabled = !state.channelData.R;
+  document.getElementById('stop-btn').classList.toggle('active', playing || paused);
+  document.getElementById('playback-time').textContent = (playing || paused) ? formatTime(state.playbackPosition * state.width * state.height / SAMPLE_RATE) : '';
+}
+
+function saveToHistory() {
+  const copy = {};
+  CHANNELS.forEach(ch => copy[ch] = new Uint8Array(state.channelData[ch]));
+  const size = state.channelData.R.length;
+  const maxHist = size > 5e6 ? 5 : size > 1e6 ? 10 : MAX_HISTORY;
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  state.history.push(copy);
+  if (state.history.length > maxHist) state.history.shift();
+  state.historyIndex = state.history.length - 1;
+  updateHistoryButtons();
+}
+
+function undo() {
+  if (state.historyIndex > 0) {
+    state.historyIndex--;
+    const prev = state.history[state.historyIndex];
+    CHANNELS.forEach(ch => state.channelData[ch] = new Uint8Array(prev[ch]));
+    updateHistoryButtons(); render();
+  }
+}
+
+function redo() {
+  if (state.historyIndex < state.history.length - 1) {
+    state.historyIndex++;
+    const next = state.history[state.historyIndex];
+    CHANNELS.forEach(ch => state.channelData[ch] = new Uint8Array(next[ch]));
+    updateHistoryButtons(); render();
+  }
+}
+
+function copyChannel() {
+  const ch = state.activeChannel, sel = state.selection;
+  if (sel) {
+    const data = new Uint8Array(sel.w * sel.h);
+    for (let y = 0; y < sel.h; y++) for (let x = 0; x < sel.w; x++) data[y * sel.w + x] = state.channelData[ch][(sel.y + y) * state.width + (sel.x + x)];
+    state.clipboard = { width: sel.w, height: sel.h, data };
+  } else {
+    state.clipboard = { width: state.width, height: state.height, data: new Uint8Array(state.channelData[ch]) };
+  }
+  document.getElementById('paste-btn').disabled = false;
+  updateRoutingSummary();
+}
+
+function pasteChannel() {
+  if (!state.clipboard) return;
+  const ch = state.activeChannel, clip = state.clipboard;
+  const startX = state.selection ? state.selection.x : 0, startY = state.selection ? state.selection.y : 0;
+  for (let y = 0; y < clip.height && (startY + y) < state.height; y++) {
+    for (let x = 0; x < clip.width && (startX + x) < state.width; x++) {
+      state.channelData[ch][(startY + y) * state.width + (startX + x)] = clip.data[y * clip.width + x];
+    }
+  }
+  saveToHistory(); render();
+}
+
+function exportRaw() {
+  const { width, height, channelData } = state;
+  const raw = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    raw[i * 4] = channelData.R[i]; raw[i * 4 + 1] = channelData.G[i];
+    raw[i * 4 + 2] = channelData.B[i]; raw[i * 4 + 3] = channelData.A[i];
+  }
+  download(raw, `datafold_${width}x${height}_rgba.raw`);
+}
+
+function exportAudioRaw() {
+  const { width, height, channelData, audioRouting, alphaAsEnvelope } = state;
+  const n = width * height;
+  const left = new Float32Array(n), right = new Float32Array(n);
+  const toAudio = (g) => g <= SILENCE ? (SILENCE - g) / SILENCE : (SILENCE - g) / (255 - SILENCE);
+  for (let i = 0; i < n; i++) {
+    const env = alphaAsEnvelope ? channelData.A[i] / 255 : 1;
+    ['R', 'G', 'B', 'M'].forEach(ch => {
+      const r = audioRouting[ch]; if (r === 'none') return;
+      const v = toAudio(channelData[ch][i]) * env;
+      if (r === 'left') left[i] += v; else if (r === 'right') right[i] += v; else { left[i] += v * 0.707; right[i] += v * 0.707; }
+    });
+    if (!alphaAsEnvelope && audioRouting.A !== 'none') {
+      const v = (channelData.A[i] - 127) / 127;
+      const r = audioRouting.A;
+      if (r === 'left') left[i] += v; else if (r === 'right') right[i] += v; else { left[i] += v * 0.707; right[i] += v * 0.707; }
+    }
+    left[i] = Math.max(-1, Math.min(1, left[i])); right[i] = Math.max(-1, Math.min(1, right[i]));
+  }
+  const raw = new Uint8Array(n * 2);
+  for (let i = 0; i < n; i++) { raw[i * 2] = Math.round((left[i] + 1) * 127.5); raw[i * 2 + 1] = Math.round((right[i] + 1) * 127.5); }
+  download(raw, `datafold_${width}x${height}_stereo_8bit_${SAMPLE_RATE}hz.raw`);
+}
+
+function download(data, filename) {
+  const blob = new Blob([data], { type: 'application/octet-stream' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function importImage(e) {
+  const file = e.target.files?.[0]; if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = state.width; c.height = state.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, state.width, state.height);
+    const d = ctx.getImageData(0, 0, state.width, state.height).data;
+    for (let i = 0; i < state.width * state.height; i++) {
+      state.channelData.R[i] = d[i * 4]; state.channelData.G[i] = d[i * 4 + 1];
+      state.channelData.B[i] = d[i * 4 + 2]; state.channelData.A[i] = d[i * 4 + 3];
+      state.channelData.M[i] = Math.round((d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3);
+    }
+    saveToHistory(); render(); URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(file); e.target.value = '';
+}
+
+function fillSelection(rowAligned) {
+  const { selection: sel, channelData, activeChannel: ch, fillMode, selectedWavelength, selectedWaveform, selectedGradient, gradientDirection, amplitude, width, height } = state;
+  if (!sel) return;
+  if (fillMode === 'waveform' && !selectedWavelength) return;
+  
+  if (fillMode === 'waveform') {
+    const wfn = WAVEFORMS.find(w => w.id === selectedWaveform)?.fn || WAVEFORMS[0].fn;
+    for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+      for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) {
+        const idx = sy * width + sx;
+        const phase = ((rowAligned ? sx : idx) % selectedWavelength) / selectedWavelength;
+        const amp = wfn(phase) * amplitude;
+        if (ch === 'A') channelData[ch][idx] = Math.round((amp + 1) / 2 * 255);
+        else channelData[ch][idx] = amp >= 0 ? Math.round(SILENCE - amp * SILENCE) : Math.round(SILENCE - amp * (255 - SILENCE));
+      }
+    }
+  } else {
+    const gfn = GRADIENTS.find(g => g.id === selectedGradient)?.fn || GRADIENTS[0].fn;
+    for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+      for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) {
+        const idx = sy * width + sx;
+        const t = gradientDirection === 'horizontal' ? (sx - sel.x) / (sel.w - 1 || 1) : (sy - sel.y) / (sel.h - 1 || 1);
+        const val = gfn(t) * amplitude;
+        if (ch === 'A') channelData[ch][idx] = Math.round(val * 255);
+        else channelData[ch][idx] = Math.round(SILENCE - (val * 2 - 1) * SILENCE);
+      }
+    }
+  }
+  saveToHistory(); render();
+}
+
+function clearSelection() {
+  const { selection: sel, channelData, activeChannel: ch, width, height } = state;
+  if (!sel) return;
+  const fill = ch === 'A' ? 255 : SILENCE;
+  for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+    for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) channelData[ch][sy * width + sx] = fill;
+  }
+  saveToHistory(); render();
+}
+
+function applyDistortion() {
+  const { selection: sel, channelData, activeChannel: ch, width, height } = state;
+  if (!sel) return;
+  const drive = parseFloat(document.getElementById('dist-drive').value) * 10 + 1;
+  for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+    for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) {
+      const idx = sy * width + sx, val = channelData[ch][idx];
+      const norm = (val - SILENCE) / SILENCE;
+      const dist = Math.tanh(norm * drive) / Math.tanh(drive);
+      channelData[ch][idx] = Math.round(SILENCE + dist * SILENCE);
+    }
+  }
+  saveToHistory(); render();
+}
+
+function applyDelay() {
+  const { selection: sel, channelData, activeChannel: ch, width, height } = state;
+  if (!sel) return;
+  const time = parseFloat(document.getElementById('delay-time').value);
+  const fb = parseFloat(document.getElementById('delay-fb').value);
+  const mix = parseFloat(document.getElementById('delay-mix').value);
+  const delaySamples = Math.floor(time * SAMPLE_RATE);
+  const orig = new Uint8Array(channelData[ch]);
+  for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+    for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) {
+      const idx = sy * width + sx, srcIdx = idx - delaySamples;
+      let delayed = SILENCE;
+      if (srcIdx >= 0 && srcIdx < width * height) delayed = orig[srcIdx];
+      const origSig = orig[idx] - SILENCE, delaySig = delayed - SILENCE;
+      const mixed = origSig * (1 - mix) + delaySig * mix + delaySig * fb;
+      channelData[ch][idx] = Math.max(0, Math.min(255, Math.round(SILENCE + mixed)));
+    }
+  }
+  saveToHistory(); render();
+}
+
+function applyReverb() {
+  const { selection: sel, channelData, activeChannel: ch, width, height } = state;
+  if (!sel) return;
+  const decay = parseFloat(document.getElementById('reverb-decay').value);
+  const mix = parseFloat(document.getElementById('reverb-mix').value);
+  const taps = [0.029, 0.037, 0.041, 0.043, 0.047, 0.053].map(t => Math.floor(t * SAMPLE_RATE));
+  for (let sy = sel.y; sy < sel.y + sel.h && sy < height; sy++) {
+    for (let sx = sel.x; sx < sel.x + sel.w && sx < width; sx++) {
+      const idx = sy * width + sx, linPos = sy * width + sx;
+      let revSum = 0, tapCount = 0;
+      taps.forEach((tap, ti) => {
+        const srcLin = linPos - tap;
+        if (srcLin >= 0) {
+          const srcY = Math.floor(srcLin / width), srcX = srcLin % width;
+          if (srcY >= sel.y && srcY < sel.y + sel.h && srcX >= sel.x && srcX < sel.x + sel.w) {
+            revSum += (channelData[ch][srcLin] - SILENCE) * Math.pow(decay, ti + 1); tapCount++;
+          }
+        }
+      });
+      const orig = channelData[ch][idx], revSig = tapCount > 0 ? revSum / tapCount : 0;
+      const mixed = (orig - SILENCE) * (1 - mix) + revSig * mix;
+      channelData[ch][idx] = Math.max(0, Math.min(255, Math.round(SILENCE + mixed)));
+    }
+  }
+  saveToHistory(); render();
+}
+
+async function playAudio() {
+  if (!state.channelData.R) return;
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioContext.state === 'suspended') await audioContext.resume();
+  
+  const { width, height, channelData, audioRouting, alphaAsEnvelope, isPaused } = state;
+  const n = width * height, duration = n / SAMPLE_RATE;
+  const startOffset = isPaused ? pausedAt * duration : 0;
+  
+  const buffer = audioContext.createBuffer(2, n, SAMPLE_RATE);
+  const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+  const toAudio = (g) => g <= SILENCE ? (SILENCE - g) / SILENCE : (SILENCE - g) / (255 - SILENCE);
+  
+  for (let i = 0; i < n; i++) {
+    const env = alphaAsEnvelope ? channelData.A[i] / 255 : 1;
+    ['R', 'G', 'B', 'M'].forEach(ch => {
+      const r = audioRouting[ch]; if (r === 'none') return;
+      const v = toAudio(channelData[ch][i]) * env;
+      if (r === 'left') left[i] += v; else if (r === 'right') right[i] += v; else { left[i] += v * 0.707; right[i] += v * 0.707; }
+    });
+    if (!alphaAsEnvelope && audioRouting.A !== 'none') {
+      const v = (channelData.A[i] - 127) / 127, r = audioRouting.A;
+      if (r === 'left') left[i] += v; else if (r === 'right') right[i] += v; else { left[i] += v * 0.707; right[i] += v * 0.707; }
+    }
+    left[i] = Math.max(-1, Math.min(1, left[i])); right[i] = Math.max(-1, Math.min(1, right[i]));
+  }
+  
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = buffer; sourceNode.connect(audioContext.destination);
+  playbackStartTime = audioContext.currentTime - startOffset;
+  state.isPlaying = true; state.isPaused = false;
+  
+  const animate = () => {
+    if (!state.isPlaying) return;
+    const progress = Math.min((audioContext.currentTime - playbackStartTime) / duration, 1);
+    state.playbackPosition = progress; updatePlaybackUI(); render();
+    if (progress < 1) animationFrame = requestAnimationFrame(animate);
+  };
+  animationFrame = requestAnimationFrame(animate);
+  
+  sourceNode.onended = () => {
+    state.isPlaying = false; state.isPaused = false; state.playbackPosition = 0; pausedAt = 0;
+    sourceNode = null; if (animationFrame) cancelAnimationFrame(animationFrame);
+    updatePlaybackUI(); render();
+  };
+  sourceNode.start(0, startOffset); updatePlaybackUI();
+}
+
+function pauseAudio() {
+  if (!state.isPlaying || !sourceNode) return;
+  pausedAt = state.playbackPosition; state.isPlaying = false; state.isPaused = true;
+  try { sourceNode.stop(); } catch(e) {} sourceNode = null;
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+  updatePlaybackUI();
+}
+
+function stopAudio() {
+  state.isPlaying = false; state.isPaused = false; state.playbackPosition = 0; pausedAt = 0;
+  if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; }
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+  updatePlaybackUI(); render();
+}
+
+function getCanvasCoords(e) {
+  const canvas = document.getElementById('display-canvas'), rect = canvas.getBoundingClientRect();
+  return { x: Math.floor((e.clientX - rect.left) * (state.width / canvas.width)), y: Math.floor((e.clientY - rect.top) * (state.height / canvas.height)) };
+}
+
+function onMouseDown(e) {
+  const coords = getCanvasCoords(e);
+  isSelecting = true; selectionStart = coords;
+  state.selection = { x: coords.x, y: coords.y, w: 1, h: 1 };
+  updateSelectionUI(); render();
+}
+
+function onMouseMove(e) {
+  if (!isSelecting || !selectionStart) return;
+  const coords = getCanvasCoords(e);
+  const cx = Math.max(0, Math.min(coords.x, state.width - 1)), cy = Math.max(0, Math.min(coords.y, state.height - 1));
+  state.selection = { x: Math.min(selectionStart.x, cx), y: Math.min(selectionStart.y, cy), w: Math.abs(cx - selectionStart.x) + 1, h: Math.abs(cy - selectionStart.y) + 1 };
+  updateSelectionUI(); render();
+}
+
+function onMouseUp() { isSelecting = false; }
+
+function render() {
+  const { width, height, channelData, selection, viewMode, activeChannel, isPlaying, isPaused, playbackPosition, showGrid } = state;
+  if (!channelData.R) return;
+  
+  const canvas = document.getElementById('display-canvas'), ctx = canvas.getContext('2d');
+  const maxSize = 500, scale = Math.min(maxSize / width, maxSize / height, 1);
+  canvas.width = Math.floor(width * scale); canvas.height = Math.floor(height * scale);
+  
+  const off = document.createElement('canvas'); off.width = width; off.height = height;
+  const offCtx = off.getContext('2d'), imgData = offCtx.createImageData(width, height);
+  
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    if (viewMode === 'composite') {
+      imgData.data[idx] = channelData.R[i]; imgData.data[idx + 1] = channelData.G[i];
+      imgData.data[idx + 2] = channelData.B[i]; imgData.data[idx + 3] = channelData.A[i];
+    } else {
+      const val = channelData[activeChannel][i];
+      if (activeChannel === 'A' || activeChannel === 'M') {
+        imgData.data[idx] = imgData.data[idx + 1] = imgData.data[idx + 2] = val; imgData.data[idx + 3] = 255;
+      } else {
+        imgData.data[idx] = activeChannel === 'R' ? val : val * 0.3;
+        imgData.data[idx + 1] = activeChannel === 'G' ? val : val * 0.3;
+        imgData.data[idx + 2] = activeChannel === 'B' ? val : val * 0.3;
+        imgData.data[idx + 3] = 255;
+      }
+    }
+  }
+  offCtx.putImageData(imgData, 0, 0);
+  
+  ctx.imageSmoothingEnabled = false;
+  if (viewMode === 'composite') {
+    for (let cy = 0; cy < canvas.height; cy += 8) for (let cx = 0; cx < canvas.width; cx += 8) { ctx.fillStyle = ((cx + cy) / 8) % 2 === 0 ? '#333' : '#444'; ctx.fillRect(cx, cy, 8, 8); }
+  } else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+  
+  if (showGrid) {
+    const rowsPerSec = SAMPLE_RATE / width;
+    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)'; ctx.lineWidth = 1;
+    for (let sec = 1; sec * rowsPerSec < height; sec++) {
+      const y = Math.floor(sec * rowsPerSec * scale);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }
+  
+  if (selection) {
+    ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.strokeRect(selection.x * scale, selection.y * scale, selection.w * scale, selection.h * scale);
+    ctx.setLineDash([]); ctx.fillStyle = 'rgba(255, 0, 255, 0.1)';
+    ctx.fillRect(selection.x * scale, selection.y * scale, selection.w * scale, selection.h * scale);
+  }
+  
+  if ((isPlaying || isPaused) && playbackPosition > 0) {
+    const curSample = Math.floor(playbackPosition * width * height);
+    const curRow = Math.floor(curSample / width), curCol = curSample % width, rowY = curRow * scale;
+    ctx.fillStyle = 'rgba(255, 0, 255, 0.3)'; ctx.fillRect(0, rowY, canvas.width, Math.max(scale, 2));
+    ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(curCol * scale, rowY); ctx.lineTo(curCol * scale, rowY + Math.max(scale, 2)); ctx.stroke();
+  }
+}
+
+initStep1();
+</script>
+</body>
+</html>
