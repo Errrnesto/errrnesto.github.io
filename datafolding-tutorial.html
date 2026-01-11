@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Folding Synthesizer - Tutorial</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Roboto Mono', monospace; background: #1a1a1a; color: #e0e0e0; line-height: 1.7; padding: 32px; max-width: 800px; margin: 0 auto; }
+h1 { color: #ff00ff; font-size: 24px; margin-bottom: 8px; }
+h2 { color: #ff00ff; font-size: 18px; margin: 32px 0 16px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+h3 { color: #ff00ff; font-size: 14px; margin: 24px 0 12px; }
+p { margin-bottom: 16px; font-size: 13px; }
+.subtitle { color: #888; font-size: 12px; margin-bottom: 32px; }
+a { color: #ff00ff; }
+code { background: #333; padding: 2px 6px; font-size: 12px; color: #ffff00; }
+.formula { background: #222; border-left: 3px solid #ff00ff; padding: 12px 16px; margin: 16px 0; font-size: 12px; }
+.formula span { color: #ff00ff; }
+.tip { background: #222; border: 1px solid #ff00ff; padding: 12px 16px; margin: 16px 0; font-size: 12px; }
+.tip strong { color: #ff00ff; }
+ul, ol { margin: 0 0 16px 24px; font-size: 13px; }
+li { margin-bottom: 8px; }
+.key { display: inline-block; background: #333; border: 1px solid #666; padding: 2px 8px; font-size: 11px; margin: 0 2px; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+th { background: #222; color: #ff00ff; }
+.channel-r { color: #ff4444; }
+.channel-g { color: #44ff44; }
+.channel-b { color: #4488ff; }
+.channel-a { color: #ffffff; }
+.channel-m { color: #aaaaaa; }
+.section-nav { background: #222; padding: 16px; margin-bottom: 32px; }
+.section-nav a { display: inline-block; margin-right: 16px; font-size: 11px; text-decoration: none; }
+.section-nav a:hover { text-decoration: underline; }
+.footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #333; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+.footer a { color: #ff00ff; }
+.example { background: #222; padding: 16px; margin: 16px 0; border: 1px solid #333; }
+.example-title { color: #ff00ff; font-size: 11px; margin-bottom: 8px; }
+.example ol { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<h1>DATA FOLDING SYNTHESIZER</h1>
+<p class="subtitle">Tutorial & Reference Guide</p>
+
+<div class="section-nav">
+  <a href="#concept">Concept</a>
+  <a href="#getting-started">Getting Started</a>
+  <a href="#channels">Channels</a>
+  <a href="#frequencies">Frequencies</a>
+  <a href="#filling">Filling</a>
+  <a href="#effects">Effects</a>
+  <a href="#playback">Playback</a>
+  <a href="#import-export">Import/Export</a>
+  <a href="#examples">Examples</a>
+</div>
+
+<h2 id="concept">The Concept</h2>
+<p>The Data Folding Synthesizer treats <strong>images as audio</strong> and <strong>audio as images</strong>. It's based on the principle that both are just sequences of numbers—pixels and samples are interchangeable when you understand their relationship.</p>
+
+<div class="formula">
+  <span>Core Principle:</span> At 44,100 samples per second, a row of pixels = a fraction of a second of audio. The pixel's brightness = the audio amplitude.
+</div>
+
+<p>A grayscale value of <code>127</code> (middle gray) represents silence. Values below 127 produce positive amplitude (peaks), values above 127 produce negative amplitude (troughs). This creates a direct visual-sonic correspondence: <strong>what you see is what you hear</strong>.</p>
+
+<h2 id="getting-started">Getting Started</h2>
+
+<h3>Step 1: Choose Dimensions</h3>
+<p>The first screen asks you to select the <strong>width</strong> and <strong>height</strong> of your canvas.</p>
+
+<p><strong>Width</strong> determines which frequencies are available. The tool only offers widths that are divisors of 44,100 (the sample rate). This ensures that waveforms align perfectly with row boundaries, creating clean tones.</p>
+
+<p><strong>Height</strong> determines duration:</p>
+<div class="formula">
+  <span>Duration</span> = (width × height) / 44,100 seconds
+</div>
+
+<p>For example, a 441×441 image = 194,481 samples = ~4.41 seconds of audio.</p>
+
+<div class="tip">
+  <strong>Tip:</strong> Start with a smaller canvas (like 441×441) while learning. Larger canvases use more memory and have fewer undo levels.
+</div>
+
+<h3>Step 2: The Workspace</h3>
+<p>After confirming dimensions, you'll see:</p>
+<ul>
+  <li><strong>Left panel:</strong> All controls for channels, frequencies, effects</li>
+  <li><strong>Right panel:</strong> The canvas where you draw/view your image</li>
+  <li><strong>Top toolbar:</strong> Undo, redo, copy, paste, import, export</li>
+</ul>
+
+<h2 id="channels">Channels</h2>
+<p>The synthesizer works with 5 channels:</p>
+
+<table>
+  <tr><th>Channel</th><th>Default Routing</th><th>Description</th></tr>
+  <tr><td class="channel-r">R (Red)</td><td>Right speaker</td><td>Standard color channel</td></tr>
+  <tr><td class="channel-g">G (Green)</td><td>Left speaker</td><td>Standard color channel</td></tr>
+  <tr><td class="channel-b">B (Blue)</td><td>Center (both)</td><td>Standard color channel</td></tr>
+  <tr><td class="channel-a">A (Alpha)</td><td>Envelope</td><td>Controls volume of RGB</td></tr>
+  <tr><td class="channel-m">M (Mono)</td><td>Center</td><td>Grayscale working channel</td></tr>
+</table>
+
+<h3>Audio Routing</h3>
+<p>Each channel can be routed to: <code>LEFT</code>, <code>RIGHT</code>, <code>CENTER</code>, or <code>NONE</code>. This creates stereo separation—put different frequencies in R and G for spatial effects.</p>
+
+<h3>Alpha as Envelope</h3>
+<p>When "Alpha = envelope" is checked (default), the A channel controls the <strong>volume</strong> of the RGB channels:</p>
+<ul>
+  <li>White (255) = full volume</li>
+  <li>Black (0) = silence</li>
+  <li>Gray (127) = half volume</li>
+</ul>
+<p>This lets you create amplitude envelopes (fade in/out, tremolo, gating) by drawing in the Alpha channel.</p>
+
+<h2 id="frequencies">Understanding Frequencies</h2>
+<p>The available frequencies are determined by your canvas width. A frequency is created when a waveform's wavelength (λ) divides evenly into the width.</p>
+
+<div class="formula">
+  <span>Frequency</span> = 44,100 / λ (wavelength in pixels)
+</div>
+
+<p>For example, with width 441:</p>
+<ul>
+  <li>λ = 441px → 44100/441 = <strong>100 Hz</strong> (1 cycle per row)</li>
+  <li>λ = 147px → 44100/147 = <strong>300 Hz</strong> (3 cycles per row)</li>
+  <li>λ = 49px → 44100/49 = <strong>900 Hz</strong> (9 cycles per row)</li>
+  <li>λ = 9px → 44100/9 = <strong>4900 Hz</strong> (49 cycles per row)</li>
+</ul>
+
+<p>Frequencies are grouped into:</p>
+<ul>
+  <li><strong>LOW:</strong> Under 200 Hz (bass)</li>
+  <li><strong>MID:</strong> 200–2000 Hz (most musical content)</li>
+  <li><strong>HIGH:</strong> Over 2000 Hz (treble, harmonics)</li>
+</ul>
+
+<h2 id="filling">Filling Selections</h2>
+
+<h3>Making Selections</h3>
+<p>Click and drag on the canvas to select a rectangular region. The selection info shows dimensions and duration. Click <span class="key">ALL</span> to select the entire canvas.</p>
+
+<h3>Waveform Mode</h3>
+<p>Fill selections with periodic waveforms:</p>
+<ul>
+  <li><strong>SINE:</strong> Smooth, pure tone (fundamental frequency only)</li>
+  <li><strong>SQR:</strong> Square wave (odd harmonics, hollow sound)</li>
+  <li><strong>SAW:</strong> Sawtooth (all harmonics, bright/buzzy)</li>
+  <li><strong>TRI:</strong> Triangle (odd harmonics, softer than square)</li>
+</ul>
+
+<p>Two fill options:</p>
+<ul>
+  <li><span class="key">⊞ FILL</span> <strong>Row-aligned:</strong> Phase resets each row (creates vertical stripe patterns)</li>
+  <li><span class="key">⬒ FILL</span> <strong>Continuous:</strong> Phase continues through entire selection (diagonal patterns)</li>
+</ul>
+
+<h3>Gradient Mode</h3>
+<p>Fill selections with amplitude gradients (great for the Alpha channel):</p>
+<ul>
+  <li><strong>FADE IN:</strong> 0% → 100%</li>
+  <li><strong>FADE OUT:</strong> 100% → 0%</li>
+  <li><strong>IN/OUT:</strong> 0% → 100% → 0%</li>
+  <li><strong>OUT/IN:</strong> 100% → 0% → 100%</li>
+  <li><strong>EXP IN:</strong> Exponential fade in (slow start)</li>
+  <li><strong>EXP OUT:</strong> Exponential fade out (slow end)</li>
+</ul>
+
+<p>Direction: <code>HORIZONTAL</code> (across time within rows) or <code>VERTICAL</code> (across rows/time).</p>
+
+<h3>Amplitude</h3>
+<p>The amplitude slider (0–100%) controls the intensity of fills. Lower amplitude = quieter tones.</p>
+
+<h2 id="effects">Effects</h2>
+<p>Effects modify the actual pixel data—they're "baked in" to the image. What you see IS what you hear.</p>
+
+<h3>Distortion</h3>
+<p>Applies soft clipping (tanh saturation) to push values toward extremes.</p>
+<ul>
+  <li><strong>DRV (Drive):</strong> Amount of distortion (0–100%)</li>
+</ul>
+<p>Visually: Increases contrast. Sonically: Adds harmonics, creates grit.</p>
+
+<h3>Delay</h3>
+<p>Copies and offsets the signal backward in time.</p>
+<ul>
+  <li><strong>TIME:</strong> Delay time (10–500ms)</li>
+  <li><strong>FB (Feedback):</strong> How much delayed signal feeds back (0–90%)</li>
+  <li><strong>MIX:</strong> Wet/dry balance</li>
+</ul>
+<p>Visually: Creates offset copies/echoes of patterns. Apply multiple times for cascading echoes.</p>
+
+<h3>Reverb</h3>
+<p>Multi-tap delay algorithm creating diffuse reflections.</p>
+<ul>
+  <li><strong>DEC (Decay):</strong> How long reflections last (10–95%)</li>
+  <li><strong>MIX:</strong> Wet/dry balance</li>
+</ul>
+<p>Visually: Creates smeared/ghosted trails.</p>
+
+<div class="tip">
+  <strong>Tip:</strong> All effects work on the currently selected channel. Apply effects to the Alpha channel for interesting amplitude modulation!
+</div>
+
+<h2 id="playback">Playback & Grid</h2>
+
+<h3>Transport Controls</h3>
+<ul>
+  <li><span class="key">▶</span> Play / <span class="key">❚❚</span> Pause</li>
+  <li><span class="key">■</span> Stop (returns to beginning)</li>
+</ul>
+
+<p>During playback, a magenta highlight shows the current row being read, and a vertical line shows the exact sample position.</p>
+
+<h3>Grid Overlay</h3>
+<p>Toggle <span class="key">GRID</span> to show horizontal yellow lines marking each second boundary. This helps visualize temporal structure.</p>
+
+<h2 id="import-export">Import & Export</h2>
+
+<h3>Import Image</h3>
+<p>Click <span class="key">↑</span> to load any image (PNG, JPG, etc.). The image is scaled to fit your canvas dimensions. RGBA channels are mapped directly—<strong>sonify your photographs!</strong></p>
+
+<h3>Export RGBA (.raw)</h3>
+<p>Click <span class="key">↓</span> in the toolbar to export the image as raw RGBA data.</p>
+<p><strong>To open in GIMP:</strong> File → Open → Select file → Import as "Raw image data" → Set width/height, RGBA, 8-bit.</p>
+
+<h3>Export Audio (.raw)</h3>
+<p>Click <span class="key">↓</span> next to playback controls to export stereo audio.</p>
+<p><strong>To open in Audacity:</strong> File → Import → Raw Data → Unsigned 8-bit, 2 channels (stereo), 44100 Hz.</p>
+
+<h2 id="examples">Tutorial Examples</h2>
+
+<div class="example">
+  <p class="example-title">Example 1: Your First Tone</p>
+  <ol>
+    <li>Choose width 441, height 441 (about 4.4 seconds)</li>
+    <li>Click CONFIRM</li>
+    <li>In FREQUENCIES, click a MID frequency (e.g., 300Hz)</li>
+    <li>Click <span class="key">ALL</span> to select entire canvas</li>
+    <li>Click <span class="key">⊞ FILL</span></li>
+    <li>Press <span class="key">▶</span> to hear your tone!</li>
+  </ol>
+</div>
+
+<div class="example">
+  <p class="example-title">Example 2: Stereo Chord</p>
+  <ol>
+    <li>Select channel <span class="channel-r">R</span>, choose 100Hz, fill with SINE</li>
+    <li>Select channel <span class="channel-g">G</span>, choose 150Hz, fill with SINE</li>
+    <li>Select channel <span class="channel-b">B</span>, choose 200Hz, fill with SINE</li>
+    <li>Play—you'll hear a chord with spatial separation!</li>
+  </ol>
+</div>
+
+<div class="example">
+  <p class="example-title">Example 3: Fade In/Out Envelope</p>
+  <ol>
+    <li>Fill <span class="channel-r">R</span> channel with a tone (select all, pick frequency, fill)</li>
+    <li>Switch to <span class="channel-a">A</span> channel</li>
+    <li>Switch to GRADIENT mode</li>
+    <li>Select "IN/OUT", direction VERTICAL</li>
+    <li>Select all, click FILL</li>
+    <li>Play—the tone fades in and out!</li>
+  </ol>
+</div>
+
+<div class="example">
+  <p class="example-title">Example 4: Delay Effect</p>
+  <ol>
+    <li>Create a short tone: select top 1/4 of canvas, fill with 300Hz</li>
+    <li>Select the entire canvas</li>
+    <li>Set DELAY: TIME ~100ms, FB 50%, MIX 50%</li>
+    <li>Click APPLY</li>
+    <li>You'll see echoes appearing below—play to hear them!</li>
+  </ol>
+</div>
+
+<div class="example">
+  <p class="example-title">Example 5: Sonify a Photo</p>
+  <ol>
+    <li>Click <span class="key">↑</span> import and load any image</li>
+    <li>Press play to hear what your image sounds like</li>
+    <li>Try different channel routings to explore the sound</li>
+    <li>Apply effects to transform both image and sound</li>
+  </ol>
+</div>
+
+<div class="footer">
+  <span>Data Folding Synthesizer Tutorial</span>
+  <a href="https://ernestopena.com" target="_blank">ernestopena.com</a>
+</div>
+
+</body>
+</html>
