@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlassCast v.2 - Zotero Network Visualization</title>
+    
+    <!-- Zotero Citation Metadata -->
+    <meta name="citation_title" content="GlassCast v.2">
+    <meta name="citation_author" content="Peña, Ernesto">
+    <meta name="citation_publication_date" content="2026/01/16">
+    <meta name="citation_technical_report_institution" content="Northeastern University">
+    <meta name="citation_technical_report_number" content="v2.0">
+    <meta name="citation_abstract" content="A multi-dimensional interface for visualizing bibliographic networks from Zotero libraries. Reveals citation structure through three complementary views: force-directed network, temporal timeline, and Sankey flow diagram. Based on GlassCast v.1 (Peña & Dobson, 2015).">
+    <meta name="citation_keywords" content="visualization; bibliography; network analysis; Zotero; digital humanities; glitch pedagogy">
+    <meta name="citation_public_url" content="https://epsidebox.github.io/glasscast-v2.html">
+    
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "GlassCast v.2",
+      "author": {
+        "@type": "Person",
+        "name": "Ernesto Peña",
+        "affiliation": "Northeastern University",
+        "url": "https://ernestopena.com"
+      },
+      "datePublished": "2026-01-16",
+      "version": "2.0",
+      "description": "A multi-dimensional interface for visualizing bibliographic networks from Zotero libraries. Reveals citation structure through three views: force-directed network, temporal timeline, and Sankey flow diagram.",
+      "url": "https://epsidebox.github.io/glasscast-v2.html",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web browser",
+      "keywords": ["visualization", "bibliography", "network analysis", "Zotero", "digital humanities", "glitch pedagogy"],
+      "isBasedOn": "https://src-online.ca/index.php/src/article/view/219/411"
+    }
+    </script>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XQLL5N022"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-8XQLL5N022');
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto Mono', monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #info-area {
+            width: 400px;
+            background: #1a1a1a;
+            border-right: 1px solid #ff00ff;
+            overflow-y: auto;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1000;
+        }
+        
+        #controls {
+            padding: 20px;
+        }
+        
+        #dropzone {
+            border: 2px dashed #ff00ff;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 15px;
+            background: #2a2a2a;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #dropzone:hover {
+            background: #333;
+            border-color: #ff33ff;
+        }
+        
+        #dropzone.dragover {
+            background: #3a3a3a;
+            border-color: #ff33ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+        
+        #dropzone p {
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        
+        #dropzone .file-name {
+            color: #ff00ff;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #ff00ff;
+        }
+        
+        button {
+            background: #ff00ff;
+            color: #1a1a1a;
+            border: none;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            line-height: 32px;
+            text-align: center;
+            position: relative;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button:hover {
+            background: #ff33ff;
+            transform: translateY(-2px);
+        }
+        
+        button:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 26, 0.95);
+            color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-bottom: 5px;
+            border: 1px solid #ff00ff;
+            font-weight: normal;
+            z-index: 3000;
+        }
+        
+        button.active {
+            background: #ff33ff;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+        
+        #stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+            font-size: 12px;
+        }
+        
+        #tag-filters {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+        
+        #tag-filters h3 {
+            font-size: 12px;
+            color: #ff00ff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .tag-category {
+            margin-bottom: 10px;
+        }
+        
+        .tag-category-header {
+            font-size: 11px;
+            color: #ff00ff;
+            cursor: pointer;
+            padding: 5px;
+            background: #2a2a2a;
+            border-radius: 3px;
+            margin-bottom: 5px;
+            user-select: none;
+        }
+        
+        .tag-category-header:hover {
+            background: #3a3a3a;
+        }
+        
+        .tag-category-header::before {
+            content: '▸ ';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        
+        .tag-category-header.expanded::before {
+            transform: rotate(90deg);
+        }
+        
+        .tag-category-content {
+            display: none;
+            padding-left: 10px;
+        }
+        
+        .tag-category-content.expanded {
+            display: block;
+        }
+        
+        .tag-chip {
+            display: inline-block;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            padding: 4px 8px;
+            margin: 3px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            border: 1px solid #444;
+            transition: all 0.2s;
+        }
+        
+        .tag-chip:hover {
+            background: #3a3a3a;
+            border-color: #ff00ff;
+        }
+        
+        .tag-chip.active {
+            background: #00ffff;
+            color: #1a1a1a;
+            border-color: #00ffff;
+        }
+        
+        #viz-area {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #tutorial-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            overflow-y: auto;
+            z-index: 50;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        
+        #tutorial-overlay.hidden {
+            display: none;
+        }
+        
+        .tutorial-content {
+            max-width: 600px;
+            margin: 0 auto;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        
+        .tutorial-content h2 {
+            color: #ff00ff;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .tutorial-content h3 {
+            color: #ff00ff;
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .tutorial-content p {
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .tutorial-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .tutorial-content li {
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .tutorial-content code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ff00ff;
+        }
+        
+        #timeline-overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80px;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+        
+        #timeline-overlay.active {
+            display: block;
+        }
+        
+        .timeline-tick {
+            position: absolute;
+            left: 50px;
+            height: 1px;
+            background: #444;
+            width: 20px;
+        }
+        
+        .timeline-tick.major {
+            background: #ff00ff;
+            height: 2px;
+            width: 30px;
+            left: 40px;
+        }
+        
+        .timeline-label {
+            position: absolute;
+            right: 5px;
+            font-size: 11px;
+            color: #ff00ff;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: bold;
+            transform: translateY(-100%);
+            padding-bottom: 3px;
+        }
+        
+        #visualization {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .node {
+            cursor: pointer;
+            stroke: #aaa;
+            stroke-width: 2px;
+        }
+        
+        .node:hover {
+            stroke: #fff;
+            stroke-width: 3px;
+        }
+        
+        .node.no-date {
+            stroke: #ffaa00;
+        }
+        
+        .link {
+            stroke: #666;
+            stroke-opacity: 0.3;
+            stroke-width: 2px;
+        }
+        
+        .node-label {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 10px;
+            fill: #e0e0e0;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+        
+        #tooltip {
+            position: absolute;
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid #ff00ff;
+            border-radius: 4px;
+            padding: 10px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+    <div id="info-area">
+        <div id="controls">
+            <h1>GlassCast v.2</h1>
+            <p style="font-size: 10px; color: #888; margin: -10px 0 15px 0;">
+                Based on <a href="https://src-online.ca/index.php/src/article/view/219/411" target="_blank" style="color: #00ffff; text-decoration: none;">GlassCast v.1</a>
+            </p>
+            <div id="dropzone">
+                <p style="font-size: 16px; margin-bottom: 5px;">📁 Drop Zotero HTML here</p>
+                <p style="font-size: 11px; color: #888;">or click to browse</p>
+                <input type="file" id="fileInput" accept=".html" style="display: none;">
+            </div>
+            <div style="margin-bottom: 15px; width: 100%;">
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <div style="display: inline-flex;">
+                        <button onclick="showTutorial()" data-tooltip="Home">⌂</button>
+                        <button onclick="loadSampleData()" data-tooltip="Load Sample Data">⚡</button>
+                    </div>
+                    <div style="display: inline-flex;">
+                        <button id="networkBtn" class="active" onclick="switchView('network')" data-tooltip="Network View">⊚</button>
+                        <button id="temporalBtn" onclick="switchView('temporal')" data-tooltip="Temporal View">⧗</button>
+                        <button id="sankeyBtn" onclick="switchView('sankey')" data-tooltip="Sankey Timeline">≋</button>
+                    </div>
+                    <div style="display: inline-flex;">
+                        <button onclick="resetView()" data-tooltip="Reset View">↻</button>
+                        <button onclick="clearFilter()" data-tooltip="Clear Filter">✕</button>
+                        <button id="labelsBtn" class="active" onclick="toggleLabels()" data-tooltip="Toggle Labels">Aa</button>
+                    </div>
+                </div>
+                <div id="orderControls" style="display:none; margin-top:10px; text-align: center;">
+                    <span style="font-size: 11px; color: #888;">Selection Order:</span>
+                    <button onclick="decreaseOrder()" data-tooltip="Decrease Order" style="margin-left: 10px;">−</button>
+                    <span id="orderDisplay" style="margin: 0 10px; font-size: 12px; color: #00ffff;">1</span>
+                    <button onclick="increaseOrder()" data-tooltip="Increase Order">+</button>
+                </div>
+            </div>
+            <div id="stats"></div>
+            <div id="tag-filters"></div>
+        </div>
+    </div>
+    
+    <div id="viz-area">
+        <div id="tutorial-overlay">
+            <div class="tutorial-content">
+                <h2>GlassCast v.2</h2>
+                <p>A multi-dimensional interface for visualizing bibliographic networks from Zotero libraries. GlassCast reveals the structure of citation relationships through three complementary perspectives on the same network data.</p>
+                <p style="font-size: 11px; color: #888; margin-top: -5px;">
+                    Based on <a href="https://src-online.ca/index.php/src/article/view/219/411" target="_blank" style="color: #00ffff; text-decoration: none;">GlassCast v.1</a> (Peña &amp; Dobson, 2015)
+                </p>
+                
+                <h3>The Glass Cast Metaphor</h3>
+                <p>Like a cast sculpture where the subject appears as negative space within glass, GlassCast reveals the intellectual landscape through the relationships between documents. Each view illuminates different aspects of this space: structural clustering, temporal evolution, and chronological flow.</p>
+                
+                <h3>Getting Started</h3>
+                <p><strong>1. Load Your Data:</strong> Drag and drop your Zotero HTML report into the drop zone, or click to browse files. Generate a report from Zotero using File → Export Library → Report (HTML).</p>
+                <p><strong>2. Explore Sample Data:</strong> Click <code>⚡</code> to load a sample dataset of 30 documents from visual literacy and glitch art scholarship (1964-2020).</p>
+                
+                <h3>Three Views</h3>
+                <p><strong><code>⊚ Network View</code></strong> - Reveals structural relationships through force-directed layout. Documents cluster based on citation patterns, showing communities of related work. High-degree nodes (large circles) indicate influential or well-connected texts.</p>
+                
+                <p><strong><code>⧗ Temporal View</code></strong> - Organizes documents along a vertical timeline by publication date. The cylindrical projection allows rotation (use ← → arrow keys) to explore the temporal network from different angles. Month-level jitter prevents overlap of documents from the same year.</p>
+                
+                <p><strong><code>≋ Sankey Timeline</code></strong> - Shows citation flow across decades as horizontal bar charts. Each column represents a decade; bar length indicates connection count. Arcing paths within decades and flowing paths between decades reveal patterns of influence over time.</p>
+                
+                <h3>Interactions</h3>
+                <p><strong>Navigation:</strong></p>
+                <ul>
+                    <li><strong>Zoom:</strong> Scroll wheel or trackpad pinch</li>
+                    <li><strong>Pan:</strong> Click and drag background</li>
+                    <li><strong>Rotate (Temporal):</strong> ← → arrow keys</li>
+                    <li><strong>Reset:</strong> <code>↻</code> button returns to default view</li>
+                </ul>
+                
+                <p><strong>Selection &amp; Filtering:</strong></p>
+                <ul>
+                    <li><strong>Click any node</strong> to highlight it and its connections (dims others to 10% opacity)</li>
+                    <li><strong>Expand selection:</strong> Use <code>+</code> button to include 2nd-order connections, 3rd-order, etc.</li>
+                    <li><strong>Contract selection:</strong> Use <code>−</code> button to return to direct connections only</li>
+                    <li><strong>Tag filtering:</strong> Click tags in the filter panel to highlight all documents with that classification (turns nodes cyan)</li>
+                    <li><strong>Combine filters:</strong> Tag highlighting and node selection work together</li>
+                    <li><strong>Clear all:</strong> <code>✕</code> button removes all selections and highlights</li>
+                </ul>
+                
+                <p><strong>Display Options:</strong></p>
+                <ul>
+                    <li><strong>Toggle labels:</strong> <code>Aa</code> button shows/hides document titles across all views</li>
+                    <li><strong>Tooltips:</strong> Hover over any node to see full metadata (title, year, type, tags, connections)</li>
+                </ul>
+                
+                <h3>Understanding the Visualization</h3>
+                <p><strong>Node Colors:</strong></p>
+                <ul>
+                    <li><strong>Gray (#888):</strong> Default documents with connections</li>
+                    <li><strong>Dark gray (#555):</strong> Isolated documents (no citations)</li>
+                    <li><strong>Cyan (#00ffff):</strong> Documents with selected tag</li>
+                    <li><strong>Orange (#ffaa00):</strong> Documents without publication dates</li>
+                </ul>
+                
+                <p><strong>Node Size:</strong> In Network and Temporal views, larger circles indicate documents with more connections (5-25px radius based on degree).</p>
+                
+                <p><strong>Sankey Bars:</strong> Each horizontal bar's length (width) represents the number of connections that document has (1px per connection). Taller stacks indicate more publications in that decade.</p>
+                
+                <h3>Document Relationships</h3>
+                <p>The connections (edges) between documents are derived from Zotero's "Related" field. In your Zotero library, you can manually relate documents to each other (right-click a document → Add Related). GlassCast visualizes these relationships as a network, allowing you to see how documents cluster and influence each other across your research corpus.</p>
+                
+                <h3>Tags &amp; Categories</h3>
+                <p>If your Zotero library uses manual tags with prefix notation (A., B., C., etc.), GlassCast organizes them into collapsible categories. Click category headers to expand/collapse, then click individual tags to highlight all documents in that category across all views.</p>
+                
+                <h3>Tips for Exploration</h3>
+                <ul>
+                    <li>Start in <strong>Network View</strong> to identify clusters and highly-connected documents</li>
+                    <li>Switch to <strong>Temporal View</strong> to see how the field evolved over time</li>
+                    <li>Use <strong>Sankey Timeline</strong> to trace citation flows between decades</li>
+                    <li>Combine tag highlighting with node selection to explore specific subcommunities</li>
+                    <li>Expand selection order to see how influence radiates through the network</li>
+                    <li>Hide labels (<code>Aa</code>) when examining dense regions, show them for identification</li>
+                </ul>
+            </div>
+        </div>
+        <div id="timeline-overlay"></div>
+        <svg id="visualization"></svg>
+    </div>
+    
+    <div id="tooltip"></div>
+
+    <script>
+        var nodes = [];
+        var links = [];
+        var currentView = 'network';
+        var currentFilter = null;
+        var currentTagFilter = null;
+        var selectionOrder = 1;
+        var showLabels = true;
+        var rotationAngle = 0;
+        var sankeyTransform = d3.zoomIdentity;
+        var yearScale = null;
+        var minYear = null;
+        var maxYear = null;
+        
+        var vizArea = document.getElementById('viz-area');
+        var width = vizArea.clientWidth;
+        var height = vizArea.clientHeight * 2;
+        
+        var svg = d3.select("#visualization")
+            .attr("width", width)
+            .attr("height", height);
+        
+        var g = svg.append("g").attr("id", "main-group");
+        var sankeyG = svg.append("g").attr("id", "sankey-group");
+        
+        var zoom = d3.zoom()
+            .scaleExtent([0.1, 10])
+            .on("zoom", function(event) {
+                if (currentView === 'sankey') {
+                    var scaleFactor = 0.3;
+                    var dampedK = 1 + (event.transform.k - 1) * scaleFactor;
+                    
+                    var data = sankeyG.datum();
+                    if (data) {
+                        var maxX = d3.max(data.sortedDecades.map(function(d) { return data.columnPositions[d]; })) || data.sankeyWidth;
+                        var minX = d3.min(data.sortedDecades.map(function(d) { return data.columnPositions[d]; })) || 0;
+                        
+                        // Calculate bounds accounting for zoom scale
+                        var padding = 100;
+                        var scaledWidth = (maxX - minX) * dampedK;
+                        var viewportWidth = vizArea.clientWidth;
+                        
+                        // Allow panning with proper bounds
+                        var leftBound = viewportWidth - scaledWidth - padding;
+                        var rightBound = padding;
+                        
+                        var constrainedX = event.transform.x;
+                        if (scaledWidth > viewportWidth) {
+                            // Content wider than viewport - constrain to keep edges near viewport
+                            constrainedX = Math.max(leftBound, Math.min(rightBound, event.transform.x));
+                        }
+                        
+                        sankeyTransform = d3.zoomIdentity
+                            .translate(constrainedX, event.transform.y)
+                            .scale(dampedK);
+                    } else {
+                        sankeyTransform = d3.zoomIdentity
+                            .translate(event.transform.x, event.transform.y)
+                            .scale(dampedK);
+                    }
+                    
+                    redrawSankey();
+                } else {
+                    g.attr("transform", event.transform);
+                    g.selectAll(".node-label")
+                        .style("font-size", 10 / event.transform.k + "px");
+                    g.selectAll(".link")
+                        .style("stroke-width", 2 / event.transform.k + "px");
+                    
+                    if (currentView === 'temporal') {
+                        updateTimelineOverlay(event.transform);
+                    }
+                }
+            });
+        
+        svg.call(zoom);
+        
+        var dropzone = document.getElementById('dropzone');
+        var fileInput = document.getElementById('fileInput');
+        
+        dropzone.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        dropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', function() {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            
+            var files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.name.endsWith('.html')) {
+                alert('Please upload an HTML file');
+                return;
+            }
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var items = parseZoteroHTML(e.target.result);
+                if (items.length === 0) {
+                    alert('No items found in Zotero report');
+                    return;
+                }
+                
+                var filenameDiv = dropzone.querySelector('.file-name');
+                if (filenameDiv) {
+                    filenameDiv.textContent = file.name;
+                } else {
+                    var div = document.createElement('div');
+                    div.className = 'file-name';
+                    div.textContent = file.name;
+                    dropzone.appendChild(div);
+                }
+                
+                var graphData = buildGraph(items);
+                visualizeGraph(graphData);
+            };
+            reader.readAsText(file);
+        }
+        
+        document.addEventListener('keydown', function(event) {
+            if (currentView === 'temporal') {
+                if (event.key === 'ArrowLeft') {
+                    rotationAngle -= 0.1;
+                    updateTemporalRotation();
+                    event.preventDefault();
+                } else if (event.key === 'ArrowRight') {
+                    rotationAngle += 0.1;
+                    updateTemporalRotation();
+                    event.preventDefault();
+                }
+            }
+        });
+        
+        function parseZoteroHTML(html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            
+            var items = [];
+            var itemElements = doc.querySelectorAll('li.item');
+            
+            itemElements.forEach(function(item, index) {
+                var titleEl = item.querySelector('h2');
+                var title = titleEl ? titleEl.textContent.trim() : 'Item ' + (index + 1);
+                
+                var itemId = item.id || 'item_' + index;
+                
+                var year = null;
+                var month = null;
+                var itemType = null;
+                var author = null;
+                var tags = [];
+                
+                var dateRow = Array.from(item.querySelectorAll('tr')).find(function(tr) {
+                    var th = tr.querySelector('th');
+                    return th && th.textContent.trim() === 'Date';
+                });
+                
+                var typeRow = Array.from(item.querySelectorAll('tr')).find(function(tr) {
+                    var th = tr.querySelector('th');
+                    return th && th.textContent.trim() === 'Item Type';
+                });
+                
+                var authorRow = Array.from(item.querySelectorAll('tr')).find(function(tr) {
+                    var th = tr.querySelector('th');
+                    return th && (th.textContent.trim() === 'Author' || th.textContent.trim() === 'Creator');
+                });
+                
+                var tagsRow = Array.from(item.querySelectorAll('tr')).find(function(tr) {
+                    var th = tr.querySelector('th');
+                    return th && th.textContent.trim() === 'Tags';
+                });
+                
+                if (typeRow) {
+                    var typeTd = typeRow.querySelector('td');
+                    if (typeTd) {
+                        itemType = typeTd.textContent.trim();
+                    }
+                }
+                
+                if (authorRow) {
+                    var authorTd = authorRow.querySelector('td');
+                    if (authorTd) {
+                        author = authorTd.textContent.trim();
+                    }
+                }
+                
+                if (tagsRow) {
+                    var tagsTd = tagsRow.querySelector('td');
+                    if (tagsTd) {
+                        var tagText = tagsTd.textContent.trim();
+                        if (tagText) {
+                            tags = tagText.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t.length > 0; });
+                        }
+                    }
+                }
+                
+                var tagsUl = item.querySelector('ul.tags');
+                if (tagsUl && tags.length === 0) {
+                    var tagItems = tagsUl.querySelectorAll('li');
+                    tagItems.forEach(function(li) {
+                        var tag = li.textContent.trim();
+                        if (tag) {
+                            tags.push(tag);
+                        }
+                    });
+                }
+                
+                if (dateRow) {
+                    var dateTd = dateRow.querySelector('td');
+                    if (dateTd) {
+                        var dateText = dateTd.textContent.trim();
+                        var yearMatch = dateText.match(/(\d{4})/);
+                        if (yearMatch) {
+                            year = parseInt(yearMatch[1]);
+                            var monthMatch = dateText.match(/(\d{4})-(\d{2})/);
+                            if (monthMatch) {
+                                month = parseInt(monthMatch[2]);
+                            }
+                        }
+                    }
+                }
+                
+                var related = [];
+                var relatedUl = item.querySelector('ul.related');
+                
+                if (relatedUl) {
+                    var relatedItems = relatedUl.querySelectorAll('li');
+                    relatedItems.forEach(function(li) {
+                        var relatedTitle = li.textContent.trim();
+                        if (relatedTitle) {
+                            related.push(relatedTitle);
+                        }
+                    });
+                }
+                
+                items.push({
+                    id: itemId,
+                    title: title,
+                    year: year,
+                    month: month,
+                    itemType: itemType,
+                    author: author,
+                    tags: tags,
+                    related: related
+                });
+            });
+            
+            return items;
+        }
+        
+        function buildGraph(items) {
+            var nodeMap = new Map();
+            nodes = [];
+            links = [];
+            
+            items.forEach(function(item) {
+                var node = {
+                    id: item.id,
+                    title: item.title,
+                    year: item.year,
+                    month: item.month,
+                    itemType: item.itemType,
+                    author: item.author,
+                    tags: item.tags || [],
+                    relatedCount: item.related.length,
+                    relatedTitles: item.related
+                };
+                
+                nodes.push(node);
+                nodeMap.set(item.title, node);
+            });
+            
+            items.forEach(function(item) {
+                item.related.forEach(function(relatedTitle) {
+                    var targetNode = nodeMap.get(relatedTitle);
+                    if (targetNode) {
+                        links.push({
+                            source: item.id,
+                            target: targetNode.id
+                        });
+                    }
+                });
+            });
+            
+            return { nodes: nodes, links: links };
+        }
+        
+        function visualizeGraph(graphData) {
+            document.getElementById('tutorial-overlay').classList.add('hidden');
+            
+            g.selectAll("*").remove();
+            sankeyG.selectAll("*").remove();
+            
+            var maxDegree = d3.max(graphData.nodes, function(d) { return d.relatedCount; }) || 1;
+            var radiusScale = d3.scaleLinear()
+                .domain([0, maxDegree])
+                .range([5, 25]);
+            
+            graphData.nodes.forEach(function(node) {
+                node.radius = radiusScale(node.relatedCount);
+            });
+            
+            var simulation = d3.forceSimulation(graphData.nodes)
+                .force("link", d3.forceLink(graphData.links).id(function(d) { return d.id; }).distance(100))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2).strength(0.1))
+                .force("collision", d3.forceCollide().radius(function(d) { return d.radius + 5; }))
+                .force("x", d3.forceX(width / 2).strength(0.05))
+                .force("y", d3.forceY(height / 2).strength(0.05))
+                .stop();
+            
+            for (var i = 0; i < 300; ++i) simulation.tick();
+            
+            graphData.nodes.forEach(function(node) {
+                node.frX = node.x;
+                node.frY = node.y;
+                node.frZ = (node.y - height / 2) * 5 + height / 2;
+            });
+            
+            var years = graphData.nodes.filter(function(d) { return d.year !== null; }).map(function(d) { return d.year; });
+            minYear = d3.min(years);
+            maxYear = d3.max(years);
+            
+            var verticalSpan = height * 5;
+            yearScale = d3.scaleLinear()
+                .domain([minYear - 5, maxYear + 5])
+                .range([verticalSpan * 0.95, -verticalSpan * 0.05]);
+            
+            graphData.nodes.forEach(function(node) {
+                if (node.year !== null) {
+                    var baseY = yearScale(node.year);
+                    var monthJitter = node.month ? (node.month - 6.5) * 30 : 0;
+                    node.tempY = baseY + monthJitter;
+                } else {
+                    node.tempY = yearScale(maxYear + 5);
+                }
+            });
+            
+            drawGraph(graphData);
+            applyCurrentFilter();
+        }
+        
+        function drawGraph(graphData) {
+            g.selectAll("*").remove();
+            
+            var link = g.append("g")
+                .selectAll("line")
+                .data(graphData.links)
+                .join("line")
+                .attr("class", "link");
+            
+            var node = g.append("g")
+                .selectAll("circle")
+                .data(graphData.nodes)
+                .join("circle")
+                .attr("class", function(d) { return d.year === null ? "node no-date" : "node"; })
+                .attr("r", function(d) { return d.radius; })
+                .attr("fill", getNodeColor)
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip)
+                .on("click", function(event, d) {
+                    event.stopPropagation();
+                    filterByNode(d);
+                });
+            
+            var label = g.append("g")
+                .selectAll("text")
+                .data(graphData.nodes)
+                .join("text")
+                .attr("class", "node-label")
+                .style("display", showLabels ? "block" : "none")
+                .text(function(d) { return d.title.length > 40 ? d.title.substring(0, 40) + "..." : d.title; });
+            
+            if (currentView === 'temporal' && yearScale) {
+                drawTimeline();
+            } else {
+                document.getElementById('timeline-overlay').classList.remove('active');
+            }
+            
+            updatePositions();
+            updateStats(graphData);
+        }
+        
+        function drawTimeline() {
+            var timelineOverlay = document.getElementById('timeline-overlay');
+            timelineOverlay.innerHTML = '';
+            timelineOverlay.classList.add('active');
+            
+            updateTimelineOverlay(d3.zoomIdentity);
+        }
+        
+        function updateTimelineOverlay(transform) {
+            var timelineOverlay = document.getElementById('timeline-overlay');
+            if (!timelineOverlay.classList.contains('active')) return;
+            
+            timelineOverlay.innerHTML = '';
+            
+            var vizHeight = vizArea.clientHeight;
+            
+            for (var year = maxYear + 5; year >= minYear - 5; year--) {
+                var y = yearScale(year);
+                var transformedY = y * transform.k + transform.y;
+                var screenY = transformedY;
+                
+                if (screenY < -200 || screenY > vizHeight + 200) continue;
+                
+                var isMajor = year % 10 === 0;
+                
+                var tick = document.createElement('div');
+                tick.className = 'timeline-tick' + (isMajor ? ' major' : '');
+                tick.style.top = screenY + 'px';
+                timelineOverlay.appendChild(tick);
+                
+                if (isMajor) {
+                    var label = document.createElement('div');
+                    label.className = 'timeline-label';
+                    label.textContent = year;
+                    label.style.top = screenY + 'px';
+                    timelineOverlay.appendChild(label);
+                }
+            }
+        }
+        
+        function updatePositions() {
+            if (currentView === 'network') {
+                g.selectAll(".link")
+                    .attr("x1", function(d) { return d.source.frX; })
+                    .attr("y1", function(d) { return d.source.frY; })
+                    .attr("x2", function(d) { return d.target.frX; })
+                    .attr("y2", function(d) { return d.target.frY; });
+                
+                g.selectAll(".node")
+                    .attr("cx", function(d) { return d.frX; })
+                    .attr("cy", function(d) { return d.frY; });
+                
+                g.selectAll(".node-label")
+                    .attr("x", function(d) { return d.frX; })
+                    .attr("y", function(d) { return d.frY; })
+                    .attr("dy", function(d) { return -(d.radius + 5); });
+            } else if (currentView === 'temporal') {
+                g.selectAll(".link")
+                    .attr("x1", function(d) { return getRotatedX(d.source); })
+                    .attr("y1", function(d) { return d.source.tempY; })
+                    .attr("x2", function(d) { return getRotatedX(d.target); })
+                    .attr("y2", function(d) { return d.target.tempY; });
+                
+                g.selectAll(".node")
+                    .attr("cx", function(d) { return getRotatedX(d); })
+                    .attr("cy", function(d) { return d.tempY; });
+                
+                g.selectAll(".node-label")
+                    .attr("x", function(d) { return getRotatedX(d); })
+                    .attr("y", function(d) { return d.tempY; })
+                    .attr("dy", function(d) { return -(d.radius + 5); });
+            }
+            
+            applyCurrentFilter();
+        }
+        
+        function getRotatedX(node) {
+            var centerX = width / 2;
+            var centerZ = height / 2;
+            
+            var x = node.frX - centerX;
+            var z = node.frZ - centerZ;
+            
+            var rotatedX = x * Math.cos(rotationAngle) - z * Math.sin(rotationAngle);
+            
+            return rotatedX + centerX;
+        }
+        
+        function updateTemporalRotation() {
+            if (currentView === 'temporal') {
+                updatePositions();
+                var currentTransform = d3.zoomTransform(svg.node());
+                updateTimelineOverlay(currentTransform);
+            }
+        }
+        
+        function drawSankeyView() {
+            sankeyG.selectAll("*").remove();
+            g.style("display", "none");
+            sankeyG.style("display", "block");
+            
+            var decades = {};
+            var nodeMap = new Map();
+            
+            nodes.forEach(function(node) {
+                nodeMap.set(node.id, node);
+                if (node.year) {
+                    var decade = Math.floor(node.year / 10) * 10;
+                    if (!decades[decade]) decades[decade] = [];
+                    decades[decade].push(node);
+                    node.decade = decade;
+                } else {
+                    if (!decades['unknown']) decades['unknown'] = [];
+                    decades['unknown'].push(node);
+                    node.decade = 'unknown';
+                }
+            });
+            
+            var sortedDecades = Object.keys(decades).filter(function(d) { return d !== 'unknown'; }).map(Number).sort(function(a,b) { return a-b; });
+            if (decades['unknown']) sortedDecades.push('unknown');
+            
+            var sankeyWidth = vizArea.clientWidth;
+            var sankeyHeight = vizArea.clientHeight;
+            
+            var columnWidth = sankeyWidth / (sortedDecades.length + 1);
+            var columnPositions = {};
+            
+            sortedDecades.forEach(function(decade, i) {
+                columnPositions[decade] = (i + 1) * columnWidth;
+            });
+            
+            sortedDecades.forEach(function(decade) {
+                decades[decade].sort(function(a, b) {
+                    if (a.year !== b.year) return (b.year || 0) - (a.year || 0);
+                    return (b.month || 0) - (a.month || 0);
+                });
+            });
+            
+            var maxNodesInDecade = d3.max(sortedDecades.map(function(d) { return decades[d].length; }));
+            var topPadding = 50;
+            var bottomPadding = 100;
+            var availableHeight = sankeyHeight - topPadding - bottomPadding;
+            var rectHeight = 8;
+            var nodeSpacing = Math.min(12, availableHeight / (maxNodesInDecade + 1));
+            var startY = sankeyHeight - bottomPadding;
+            
+            sortedDecades.forEach(function(decade) {
+                var decadeNodes = decades[decade];
+                
+                decadeNodes.forEach(function(node, i) {
+                    node.sankeyX = columnPositions[decade];
+                    node.sankeyY = startY - (i * nodeSpacing);
+                    node.sankeyWidth = node.relatedCount;
+                    node.sankeyHeight = rectHeight;
+                });
+            });
+            
+            var flows = [];
+            var processedPairs = new Set();
+            
+            links.forEach(function(link) {
+                var source = nodeMap.get(link.source.id || link.source);
+                var target = nodeMap.get(link.target.id || link.target);
+                
+                if (!source || !target || !source.year || !target.year) return;
+                
+                var pairKey = [source.id, target.id].sort().join('_');
+                if (processedPairs.has(pairKey)) return;
+                processedPairs.add(pairKey);
+                
+                var flowSource = source;
+                var flowTarget = target;
+                if (source.year > target.year) {
+                    flowSource = target;
+                    flowTarget = source;
+                }
+                
+                flows.push({
+                    source: flowSource,
+                    target: flowTarget,
+                    value: flowSource.relatedCount + flowTarget.relatedCount
+                });
+            });
+            
+            sankeyG.datum({
+                nodes: nodes,
+                flows: flows,
+                sortedDecades: sortedDecades,
+                columnPositions: columnPositions,
+                sankeyWidth: sankeyWidth,
+                sankeyHeight: sankeyHeight
+            });
+            
+            redrawSankey();
+        }
+        
+        function redrawSankey() {
+            var data = sankeyG.datum();
+            if (!data) return;
+            
+            var transform = sankeyTransform;
+            
+            function transformX(x) {
+                return transform.applyX(x);
+            }
+            
+            sankeyG.selectAll("*").remove();
+            
+            sankeyG.append("g")
+                .selectAll("path")
+                .data(data.flows)
+                .join("path")
+                .attr("class", "flow-path")
+                .attr("d", function(d) {
+                    var x0 = transformX(d.source.sankeyX);
+                    var y0 = d.source.sankeyY;
+                    var x1 = transformX(d.target.sankeyX);
+                    var y1 = d.target.sankeyY;
+                    
+                    // Check if same decade (same column)
+                    if (Math.abs(d.source.sankeyX - d.target.sankeyX) < 1) {
+                        // Arc to the right for same-decade connections
+                        var midY = (y0 + y1) / 2;
+                        var arcWidth = 50; // How far the arc extends to the right
+                        
+                        return 'M' + x0 + ',' + y0 + 
+                               'Q' + (x0 + arcWidth) + ',' + midY + 
+                               ' ' + x1 + ',' + y1;
+                    } else {
+                        // Regular bezier curve for cross-decade
+                        var curvature = 0.5;
+                        var xi = d3.interpolateNumber(x0, x1);
+                        var x2 = xi(curvature);
+                        var x3 = xi(1 - curvature);
+                        
+                        return 'M' + x0 + ',' + y0 + 'C' + x2 + ',' + y0 + ' ' + x3 + ',' + y1 + ' ' + x1 + ',' + y1;
+                    }
+                })
+                .attr("fill", "none")
+                .attr("stroke", "#666")
+                .attr("stroke-opacity", 0.5)
+                .attr("stroke-width", function(d) { return (d.source.relatedCount + d.target.relatedCount) / 2; });
+            
+            sankeyG.append("g")
+                .selectAll("rect")
+                .data(data.nodes.filter(function(n) { return n.sankeyX; }))
+                .join("rect")
+                .attr("class", function(d) { return d.year === null ? "node no-date" : "node"; })
+                .attr("x", function(d) { return transformX(d.sankeyX); })
+                .attr("y", function(d) { return d.sankeyY - d.sankeyHeight / 2; })
+                .attr("width", function(d) { return d.sankeyWidth; })
+                .attr("height", function(d) { return d.sankeyHeight; })
+                .attr("fill", getNodeColor)
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip)
+                .on("click", function(event, d) {
+                    event.stopPropagation();
+                    filterByNode(d);
+                });
+            
+            sankeyG.append("g")
+                .selectAll("text")
+                .data(data.nodes.filter(function(n) { return n.sankeyX; }))
+                .join("text")
+                .attr("class", "node-label")
+                .style("display", showLabels ? "block" : "none")
+                .attr("x", function(d) { return transformX(d.sankeyX) + d.sankeyWidth + 5; })
+                .attr("y", function(d) { return d.sankeyY; })
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "start")
+                .text(function(d) { return d.title.length > 30 ? d.title.substring(0, 30) + "..." : d.title; });
+            
+            sankeyG.append("g")
+                .selectAll("text")
+                .data(data.sortedDecades)
+                .join("text")
+                .attr("x", function(d) { return transformX(data.columnPositions[d]); })
+                .attr("y", data.sankeyHeight - 20)
+                .attr("text-anchor", "middle")
+                .attr("fill", "#ff00ff")
+                .attr("font-size", "14px")
+                .attr("font-weight", "bold")
+                .text(function(d) { return d === 'unknown' ? 'No Date' : d + 's'; });
+            
+            applySankeyFilter();
+        }
+        
+        function getNodeColor(d) {
+            if (currentTagFilter && d.tags && d.tags.includes(currentTagFilter)) {
+                return "#00ffff";
+            }
+            
+            if (d.year === null) return "#ffaa00";
+            return d.relatedCount > 0 ? "#888" : "#555";
+        }
+        
+        function updateNodeColors() {
+            g.selectAll(".node").attr("fill", getNodeColor);
+        }
+        
+        function showTutorial() {
+            document.getElementById('tutorial-overlay').classList.remove('hidden');
+        }
+        
+        function toggleLabels() {
+            showLabels = !showLabels;
+            document.getElementById('labelsBtn').classList.toggle('active', showLabels);
+            
+            g.selectAll(".node-label").style("display", showLabels ? "block" : "none");
+            sankeyG.selectAll(".node-label").style("display", showLabels ? "block" : "none");
+        }
+        
+        function increaseOrder() {
+            if (!currentFilter) return;
+            
+            var maxOrder = calculateMaxOrder();
+            if (selectionOrder < maxOrder) {
+                selectionOrder++;
+                document.getElementById('orderDisplay').textContent = selectionOrder;
+                
+                if (currentView === 'sankey') {
+                    applySankeyFilter();
+                } else {
+                    applyCurrentFilter();
+                }
+            }
+        }
+        
+        function decreaseOrder() {
+            if (!currentFilter || selectionOrder <= 1) return;
+            
+            selectionOrder--;
+            document.getElementById('orderDisplay').textContent = selectionOrder;
+            
+            if (currentView === 'sankey') {
+                applySankeyFilter();
+            } else {
+                applyCurrentFilter();
+            }
+        }
+        
+        function calculateMaxOrder() {
+            if (!currentFilter) return 1;
+            
+            var distances = {};
+            var queue = [{id: currentFilter, dist: 0}];
+            distances[currentFilter] = 0;
+            var maxDist = 0;
+            
+            while (queue.length > 0) {
+                var current = queue.shift();
+                
+                links.forEach(function(link) {
+                    var sourceId = link.source.id || link.source;
+                    var targetId = link.target.id || link.target;
+                    var neighborId = null;
+                    
+                    if (sourceId === current.id) neighborId = targetId;
+                    if (targetId === current.id) neighborId = sourceId;
+                    
+                    if (neighborId && distances[neighborId] === undefined) {
+                        var newDist = current.dist + 1;
+                        distances[neighborId] = newDist;
+                        maxDist = Math.max(maxDist, newDist);
+                        queue.push({id: neighborId, dist: newDist});
+                    }
+                });
+            }
+            
+            return maxDist;
+        }
+        
+        function getNodesWithinOrder(rootId, maxOrder) {
+            var distances = {};
+            var queue = [{id: rootId, dist: 0}];
+            distances[rootId] = 0;
+            
+            while (queue.length > 0) {
+                var current = queue.shift();
+                if (current.dist >= maxOrder) continue;
+                
+                links.forEach(function(link) {
+                    var sourceId = link.source.id || link.source;
+                    var targetId = link.target.id || link.target;
+                    var neighborId = null;
+                    
+                    if (sourceId === current.id) neighborId = targetId;
+                    if (targetId === current.id) neighborId = sourceId;
+                    
+                    if (neighborId && distances[neighborId] === undefined) {
+                        var newDist = current.dist + 1;
+                        if (newDist <= maxOrder) {
+                            distances[neighborId] = newDist;
+                            queue.push({id: neighborId, dist: newDist});
+                        }
+                    }
+                });
+            }
+            
+            return new Set(Object.keys(distances));
+        }
+        
+        function toggleSankeyGrouping() {
+            sankeyGroupByType = !sankeyGroupByType;
+            document.getElementById('typeGroupBtn').classList.toggle('active', sankeyGroupByType);
+            if (currentView === 'sankey') {
+                drawSankeyView();
+            }
+        }
+        
+        function switchView(view) {
+            currentView = view;
+            rotationAngle = 0;
+            
+            document.getElementById('networkBtn').classList.toggle('active', view === 'network');
+            document.getElementById('temporalBtn').classList.toggle('active', view === 'temporal');
+            document.getElementById('sankeyBtn').classList.toggle('active', view === 'sankey');
+            
+            if (view === 'temporal') {
+                document.getElementById('timeline-overlay').classList.add('active');
+            } else {
+                document.getElementById('timeline-overlay').classList.remove('active');
+            }
+            
+            if (nodes.length > 0) {
+                if (view === 'sankey') {
+                    sankeyTransform = d3.zoomIdentity;
+                    drawSankeyView();
+                    centerOnSelection();
+                } else {
+                    g.style("display", "block");
+                    sankeyG.style("display", "none");
+                    drawGraph({nodes: nodes, links: links});
+                    
+                    if (view === 'temporal') {
+                        var currentTransform = d3.zoomTransform(svg.node());
+                        updateTimelineOverlay(currentTransform);
+                    }
+                    
+                    centerOnSelection();
+                }
+                updateStats({nodes: nodes, links: links});
+            }
+        }
+        
+        function centerOnSelection() {
+            var visibleNodes = [];
+            
+            if (currentFilter) {
+                var connectedIds = getNodesWithinOrder(currentFilter, selectionOrder);
+                visibleNodes = nodes.filter(function(n) { return connectedIds.has(n.id); });
+            } else if (currentTagFilter) {
+                visibleNodes = nodes.filter(function(n) { 
+                    return n.tags && n.tags.includes(currentTagFilter); 
+                });
+            } else {
+                // No filter - center on all nodes
+                visibleNodes = nodes;
+            }
+            
+            if (visibleNodes.length === 0) return;
+            
+            if (currentView === 'sankey') {
+                var xValues = visibleNodes.map(function(n) { return n.sankeyX; }).filter(function(x) { return x !== undefined; });
+                if (xValues.length === 0) return;
+                
+                var minX = d3.min(xValues);
+                var maxX = d3.max(xValues);
+                var centerX = (minX + maxX) / 2;
+                
+                var targetX = vizArea.clientWidth / 2 - centerX;
+                
+                sankeyTransform = d3.zoomIdentity.translate(targetX, 0).scale(1);
+                redrawSankey();
+            } else {
+                var xCoords, yCoords;
+                
+                if (currentView === 'network') {
+                    xCoords = visibleNodes.map(function(n) { return n.frX; });
+                    yCoords = visibleNodes.map(function(n) { return n.frY; });
+                } else {
+                    xCoords = visibleNodes.map(function(n) { return getRotatedX(n); });
+                    yCoords = visibleNodes.map(function(n) { return n.tempY; });
+                }
+                
+                var minX = d3.min(xCoords);
+                var maxX = d3.max(xCoords);
+                var minY = d3.min(yCoords);
+                var maxY = d3.max(yCoords);
+                
+                var centerX = (minX + maxX) / 2;
+                var centerY = (minY + maxY) / 2;
+                
+                var targetX = vizArea.clientWidth / 2 - centerX;
+                var targetY = vizArea.clientHeight / 2 - centerY;
+                
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity.translate(targetX, targetY)
+                );
+            }
+        }
+        
+        function filterByNode(clickedNode) {
+            if (currentFilter === clickedNode.id) {
+                currentFilter = null;
+                selectionOrder = 1;
+                document.getElementById('orderControls').style.display = 'none';
+            } else {
+                currentFilter = clickedNode.id;
+                selectionOrder = 1;
+                document.getElementById('orderDisplay').textContent = selectionOrder;
+                document.getElementById('orderControls').style.display = 'block';
+            }
+            
+            if (currentView === 'sankey') {
+                applySankeyFilter();
+            } else {
+                applyCurrentFilter();
+            }
+        }
+        
+        function applyCurrentFilter() {
+            if (!currentFilter) {
+                g.selectAll(".node").style("opacity", 1).style("filter", "none");
+                g.selectAll(".node-label").style("opacity", 1).style("filter", "none");
+                g.selectAll(".link").style("opacity", 0.3);
+                return;
+            }
+            
+            var connectedIds = getNodesWithinOrder(currentFilter, selectionOrder);
+            
+            g.selectAll(".node")
+                .style("opacity", function(d) { return connectedIds.has(d.id) ? 1 : 0.1; })
+                .style("filter", function(d) { return connectedIds.has(d.id) ? "none" : "blur(2px)"; });
+            
+            g.selectAll(".node-label")
+                .style("opacity", function(d) { return connectedIds.has(d.id) ? 1 : 0.1; })
+                .style("filter", function(d) { return connectedIds.has(d.id) ? "none" : "blur(2px)"; });
+            
+            g.selectAll(".link")
+                .style("opacity", function(d) {
+                    var sourceId = d.source.id || d.source;
+                    var targetId = d.target.id || d.target;
+                    return (connectedIds.has(sourceId) && connectedIds.has(targetId)) ? 0.3 : 0.05;
+                });
+        }
+        
+        function applySankeyFilter() {
+            if (!currentFilter) {
+                sankeyG.selectAll(".node").style("opacity", 1).style("filter", "none");
+                sankeyG.selectAll(".node-label").style("opacity", 1).style("filter", "none");
+                sankeyG.selectAll(".flow-path").style("opacity", 0.5);
+                return;
+            }
+            
+            var connectedIds = getNodesWithinOrder(currentFilter, selectionOrder);
+            
+            sankeyG.selectAll(".node")
+                .style("opacity", function(d) { return connectedIds.has(d.id) ? 1 : 0.1; })
+                .style("filter", function(d) { return connectedIds.has(d.id) ? "none" : "blur(2px)"; });
+            
+            sankeyG.selectAll(".node-label")
+                .style("opacity", function(d) { return connectedIds.has(d.id) ? 1 : 0.1; })
+                .style("filter", function(d) { return connectedIds.has(d.id) ? "none" : "blur(2px)"; });
+            
+            sankeyG.selectAll(".flow-path")
+                .style("opacity", function(d) {
+                    var sourceId = d.source.id;
+                    var targetId = d.target.id;
+                    return (connectedIds.has(sourceId) && connectedIds.has(targetId)) ? 0.5 : 0.02;
+                });
+        }
+        
+        function showTooltip(event, d) {
+            var tooltip = d3.select("#tooltip");
+            tooltip.transition().duration(200).style("opacity", 1);
+            
+            var authorInfo = d.author ? d.author + '<br>' : '';
+            var yearInfo = d.year ? 'Year: ' + d.year + (d.month ? '-' + String(d.month).padStart(2, '0') : '') : 'No date';
+            var typeInfo = d.itemType ? '<br>Type: ' + d.itemType : '';
+            var tagsInfo = d.tags && d.tags.length > 0 ? '<br>Tags: ' + d.tags.join(', ') : '';
+            
+            tooltip.html('<strong>' + d.title + '</strong><br>' + authorInfo + yearInfo + typeInfo + tagsInfo + '<br>Connections: ' + d.relatedCount)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+            
+            highlightConnections(d);
+        }
+        
+        function hideTooltip() {
+            d3.select("#tooltip").transition().duration(200).style("opacity", 0);
+            unhighlightConnections();
+        }
+        
+        function highlightConnections(node) {
+            if (currentView === 'sankey') {
+                sankeyG.selectAll(".flow-path")
+                    .style("stroke", function(d) {
+                        var sourceId = d.source.id;
+                        var targetId = d.target.id;
+                        return (sourceId === node.id || targetId === node.id) ? "#00ffff" : "#666";
+                    })
+                    .style("stroke-width", function(d) {
+                        var sourceId = d.source.id;
+                        var targetId = d.target.id;
+                        return (sourceId === node.id || targetId === node.id) ? ((d.source.relatedCount + d.target.relatedCount) / 2 + 2) : ((d.source.relatedCount + d.target.relatedCount) / 2);
+                    });
+            } else {
+                g.selectAll(".link")
+                    .style("stroke", function(d) {
+                        var sourceId = d.source.id || d.source;
+                        var targetId = d.target.id || d.target;
+                        return (sourceId === node.id || targetId === node.id) ? "#00ffff" : "#666";
+                    })
+                    .style("stroke-width", function(d) {
+                        var sourceId = d.source.id || d.source;
+                        var targetId = d.target.id || d.target;
+                        var currentTransform = d3.zoomTransform(svg.node());
+                        var baseWidth = (sourceId === node.id || targetId === node.id) ? 4 : 2;
+                        return baseWidth / currentTransform.k + "px";
+                    });
+            }
+        }
+        
+        function unhighlightConnections() {
+            if (currentView === 'sankey') {
+                sankeyG.selectAll(".flow-path")
+                    .style("stroke", "#666")
+                    .style("stroke-width", function(d) { return (d.source.relatedCount + d.target.relatedCount) / 2; });
+            } else {
+                g.selectAll(".link")
+                    .style("stroke", "#666")
+                    .style("stroke-width", function() {
+                        var currentTransform = d3.zoomTransform(svg.node());
+                        return 2 / currentTransform.k + "px";
+                    });
+            }
+        }
+        
+        function updateStats(graphData) {
+            var stats = document.getElementById('stats');
+            var noDateCount = graphData.nodes.filter(function(d) { return d.year === null; }).length;
+            
+            var viewInfo = '';
+            if (currentView === 'network') {
+                viewInfo = 'Network';
+            } else if (currentView === 'temporal') {
+                viewInfo = 'Temporal';
+            } else {
+                viewInfo = 'Sankey Timeline';
+            }
+            
+            var viewHint = currentView === 'temporal' ? '<br><em style="font-size: 10px; color: #888;">Use ← → arrow keys to rotate</em>' : '';
+            
+            stats.innerHTML = '<div style="color: #ff00ff; font-weight: bold; font-size: 13px; margin-bottom: 10px;">Current View: ' + viewInfo + '</div>' +
+                viewHint +
+                '<strong>Network Stats:</strong><br>' +
+                'Nodes: ' + graphData.nodes.length + '<br>' +
+                'Edges: ' + graphData.links.length + '<br>' +
+                'No date: ' + noDateCount + '<br>' +
+                'Avg. Connections: ' + (graphData.links.length * 2 / graphData.nodes.length).toFixed(2);
+            
+            buildTagFilters(graphData);
+        }
+        
+        function buildTagFilters(graphData) {
+            var tagFiltersDiv = document.getElementById('tag-filters');
+            
+            var allTags = new Set();
+            graphData.nodes.forEach(function(node) {
+                if (node.tags && node.tags.length > 0) {
+                    node.tags.forEach(function(tag) { allTags.add(tag); });
+                }
+            });
+            
+            if (allTags.size === 0) {
+                tagFiltersDiv.innerHTML = '';
+                return;
+            }
+            
+            var tagsByPrefix = {};
+            var uncategorized = [];
+            
+            Array.from(allTags).forEach(function(tag) {
+                var match = tag.match(/^([A-Z])\.\s*/);
+                if (match) {
+                    var prefix = match[1];
+                    if (!tagsByPrefix[prefix]) tagsByPrefix[prefix] = [];
+                    tagsByPrefix[prefix].push(tag);
+                } else {
+                    uncategorized.push(tag);
+                }
+            });
+            
+            var html = '<h3>Filter by Tag</h3>';
+            
+            var sortedPrefixes = Object.keys(tagsByPrefix).sort();
+            
+            sortedPrefixes.forEach(function(prefix) {
+                var tags = tagsByPrefix[prefix].sort();
+                html += '<div class="tag-category">';
+                html += '<div class="tag-category-header" onclick="toggleCategory(this)">' + prefix + '. (' + tags.length + ')</div>';
+                html += '<div class="tag-category-content">';
+                tags.forEach(function(tag) {
+                    var isActive = currentTagFilter === tag ? ' active' : '';
+                    html += '<span class="tag-chip' + isActive + '" onclick="toggleTagFilter(\'' + tag.replace(/'/g, "\\'") + '\')">' + tag + '</span>';
+                });
+                html += '</div></div>';
+            });
+            
+            if (uncategorized.length > 0) {
+                uncategorized.sort();
+                html += '<div class="tag-category">';
+                html += '<div class="tag-category-header" onclick="toggleCategory(this)">Other (' + uncategorized.length + ')</div>';
+                html += '<div class="tag-category-content">';
+                uncategorized.forEach(function(tag) {
+                    var isActive = currentTagFilter === tag ? ' active' : '';
+                    html += '<span class="tag-chip' + isActive + '" onclick="toggleTagFilter(\'' + tag.replace(/'/g, "\\'") + '\')">' + tag + '</span>';
+                });
+                html += '</div></div>';
+            }
+            
+            tagFiltersDiv.innerHTML = html;
+        }
+        
+        function toggleCategory(header) {
+            header.classList.toggle('expanded');
+            var content = header.nextElementSibling;
+            content.classList.toggle('expanded');
+        }
+        
+        function toggleTagFilter(tag) {
+            if (currentTagFilter === tag) {
+                currentTagFilter = null;
+            } else {
+                currentTagFilter = tag;
+            }
+            
+            if (currentView === 'sankey') {
+                redrawSankey();
+            } else {
+                updateNodeColors();
+            }
+            
+            document.querySelectorAll('.tag-chip').forEach(function(chip) {
+                if (chip.textContent === tag) {
+                    chip.classList.toggle('active', currentTagFilter === tag);
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+            
+            centerOnSelection();
+        }
+        
+        function loadSampleData() {
+            var dropzone = document.getElementById('dropzone');
+            var filenameDiv = dropzone.querySelector('.file-name');
+            if (filenameDiv) {
+                filenameDiv.textContent = 'Loading sample data...';
+            } else {
+                var div = document.createElement('div');
+                div.className = 'file-name';
+                div.textContent = 'Loading sample data...';
+                dropzone.appendChild(div);
+            }
+            
+            fetch('https://raw.githubusercontent.com/EPSidebox/sidebox.github.io/refs/heads/master/Zotero%20Report.html')
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Failed to load sample data');
+                    }
+                    return response.text();
+                })
+                .then(function(html) {
+                    var items = parseZoteroHTML(html);
+                    if (items.length === 0) {
+                        alert('No items found in sample data');
+                        return;
+                    }
+                    
+                    var filenameDiv = dropzone.querySelector('.file-name');
+                    if (filenameDiv) {
+                        filenameDiv.textContent = 'Doctoral thesis bibliography (' + items.length + ' documents)';
+                    }
+                    
+                    var graphData = buildGraph(items);
+                    visualizeGraph(graphData);
+                })
+                .catch(function(error) {
+                    alert('Error loading sample data: ' + error.message);
+                    var filenameDiv = dropzone.querySelector('.file-name');
+                    if (filenameDiv) {
+                        filenameDiv.remove();
+                    }
+                });
+        }
+        
+        function resetView() {
+            rotationAngle = 0;
+            
+            if (currentView === 'sankey') {
+                sankeyTransform = d3.zoomIdentity;
+                redrawSankey();
+            } else {
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                );
+                if (currentView === 'temporal') {
+                    updatePositions();
+                    updateTimelineOverlay(d3.zoomIdentity);
+                }
+            }
+        }
+        
+        function clearFilter() {
+            currentFilter = null;
+            currentTagFilter = null;
+            selectionOrder = 1;
+            
+            document.getElementById('orderControls').style.display = 'none';
+            
+            document.querySelectorAll('.tag-chip').forEach(function(chip) {
+                chip.classList.remove('active');
+            });
+            
+            if (currentView === 'sankey') {
+                applySankeyFilter();
+                redrawSankey();
+            } else {
+                applyCurrentFilter();
+                updateNodeColors();
+            }
+        }
+    </script>
+</body>
+</html>
