@@ -105,6 +105,48 @@
       opacity: 0.7;
     }
     
+    /* === CATEGORY TAGS === */
+    .card-tags {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tag-glitch { 
+      background: var(--bg);
+      color: var(--text);
+    }
+    .tag-type { 
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .tag-dh { 
+      background: var(--text);
+      color: var(--bg);
+    }
+    .card:hover .tag-glitch {
+      background: var(--hover-text);
+      color: var(--hover-bg);
+    }
+    .card:hover .tag-type {
+      background: var(--hover-text);
+      color: var(--accent);
+      border-color: var(--hover-text);
+    }
+    .card:hover .tag-dh {
+      background: var(--hover-text);
+      color: var(--hover-bg);
+      border-color: var(--hover-text);
+    }
+    
     /* === FOOTER === */
     footer {
       padding: 40px 20px;
@@ -131,46 +173,61 @@
     
     <div class="card-grid">
       <a href="char-limit-standalone.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Character Limiter<span class="card-arrow">→</span></h2>
         <p>This small app limits the amount of text to ∼44,100 characters, which is one second of data, or an image of 210^2 pixels.</p>
       </a>
 
       <a href="transmediation-tool.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Transmediator<span class="card-arrow">→</span></h2>
         <p>A relatively simple data dictionary between text, image and audio data. Based on my work with Dr Kedrick James.</p>
       </a>
 
       <a href="hex-databend-html.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Hex Editor<span class="card-arrow">→</span></h2>
         <p>A web-based hex editor that identifies and locks header data from compressed image files.</p>
       </a>
 
       <a href="image-table-converter.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Image ↔︎ Table Converter<span class="card-arrow">→</span></h2>
         <p>Image-to-table, table-to-image converter limited to 640^2 pixels.</p>
       </a>
       
       <a href="pixel-sorter-html.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Pixel Sorter<span class="card-arrow">→</span></h2>
         <p>Basic HTML-based pixel sorter based on Kim Asendorf's work.</p>
       </a>
 
       <a href="datafolding-standalone.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Datafolding Synth<span class="card-arrow">→</span></h2>
         <p>Online Synthesiser based on datafolding principles.</p>
       </a>
 
       <a href="datamosh-lab.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-glitch">Glitch</span></div>
         <h2>Datamosh Lab<span class="card-arrow">→</span></h2>
         <p>Frame structure analysis + motion vector visualization + Datamosh simulation</p>
       </a>
 
       <a href="font-acuity-analyzer.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-type">Typography</span></div>
         <h2>Font Visual Acuity Analyzer<span class="card-arrow">→</span></h2>
         <p>Calculate minimum visible units (1μ) and relative acuity for typefaces based on visual acuity protocol.</p>
       </a>
 
+      <a href="line-length-calculator.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-type">Typography</span></div>
+        <h2>Line Length Calculator<span class="card-arrow">→</span></h2>
+        <p>Calculate optimal line length based on typeface metrics and character density. Upload any font to measure LCA' and determine ideal line lengths for novice and expert readers.</p>
+      </a>
+
       <a href="glasscast-v2.html" class="card" target="_blank">
+        <div class="card-tags"><span class="tag tag-dh">Digital Humanities</span></div>
         <h2>GlassCast v.2<span class="card-arrow">→</span></h2>
         <p>Multi-dimensional network visualization for Zotero bibliographies. Three views reveal citation structure: force-directed network, temporal timeline, and Sankey flow diagram.</p>
       </a>
@@ -180,5 +237,6 @@
   <footer>
     <a href="https://ernestopena.com">ernestopena.com</a>
   </footer>
+  </div>
 </body>
 </html>
