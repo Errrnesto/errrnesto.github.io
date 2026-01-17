@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Length Calculator | Ernesto Peña</title>
+    <meta name="description" content="Calculate optimal line length based on typeface metrics and character density. Based on Peña (2016): Calculating Line Length: an arithmetic approach.">
+    <meta name="author" content="Ernesto Peña">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5F05KEVBC8"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-5F05KEVBC8');
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #0d0d0d;
+            border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+            padding: 1rem 2rem;
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .header-link {
+            color: #ff00ff;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .header-link:hover {
+            color: #ff66ff;
+        }
+        .subtitle {
+            color: #d4d4d4;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .info-panel {
+            margin-bottom: 1.5rem;
+            background-color: #0d0d0d;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            border-radius: 0.25rem;
+        }
+        .info-toggle {
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+        }
+        .info-toggle:hover {
+            background-color: #1a1a1a;
+        }
+        .info-content {
+            padding: 0 1rem 1rem 1rem;
+            border-top: 1px solid #2a2a2a;
+            color: #e5e5e5;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .info-content.visible {
+            display: block;
+        }
+        .info-content p {
+            margin: 0.5rem 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #ff00ff;
+        }
+        .upload-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background-color: #ff00ff;
+            color: #000000;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            font-family: inherit;
+        }
+        .upload-button:hover {
+            background-color: #ff66ff;
+        }
+        .font-info {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #ff00ff;
+        }
+        .helper-text {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            color: #d4d4d4;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .input-range {
+            flex: 1;
+        }
+        .input-number {
+            width: 5rem;
+            background-color: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            color: #ffffff;
+            font-family: inherit;
+        }
+        .label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+        .metric-label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            color: #e5e5e5;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff00ff;
+        }
+        .constant-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .result-card {
+            background: linear-gradient(to bottom right, rgba(255, 0, 255, 0.2), rgba(255, 0, 255, 0.05));
+            border: 2px solid #ff00ff;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+        }
+        .result-card h2 {
+            color: #ffffff;
+        }
+        .result-main {
+            font-size: 2.25rem;
+            font-weight: bold;
+            color: #ff00ff;
+        }
+        .result-secondary {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff66ff;
+        }
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding-top: 0.5rem;
+        }
+        .result-small {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #ff99ff;
+        }
+        .benchmark-item {
+            background-color: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .benchmark-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+        .apply-button {
+            font-size: 0.75rem;
+            background-color: #ff00ff;
+            color: #000000;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .apply-button:hover {
+            background-color: #ff66ff;
+        }
+        .formula-display {
+            margin-top: 1.5rem;
+            background-color: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            display: none;
+        }
+        .formula-display.visible {
+            display: block;
+        }
+        .formula-display h3 {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            color: #ff00ff;
+        }
+        .formula {
+            font-size: 1.125rem;
+            background-color: #1a1a1a;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+        }
+        .citation {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #d4d4d4;
+        }
+        .citation a {
+            color: #ff00ff;
+            text-decoration: none;
+        }
+        .citation a:hover {
+            color: #ff66ff;
+        }
+        .zotero-button {
+            font-size: 0.875rem;
+            color: #ff00ff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 0.5rem;
+        }
+        .zotero-button:hover {
+            color: #ff66ff;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 2rem 0;
+            color: #d4d4d4;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="measureCanvas" style="display: none;"></canvas>
+    
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-title">
+                    <span style="color: #ff00ff;">⚙</span>
+                    <h1>Line Length Calculator</h1>
+                </div>
+                <a href="https://ernestopena.com" target="_blank" rel="noopener noreferrer" class="header-link">
+                    ernestopena.com →
+                </a>
+            </div>
+            <p class="subtitle">Based on Peña (2016): LCA' × Cρ(S) = Ll</p>
+        </div>
+    </div>
+
+    <div class="container main-content">
+        <div class="info-panel">
+            <button class="info-toggle" id="infoToggle">
+                <span><strong style="color: #ff00ff;">ℹ</strong> About this Calculator</span>
+                <span style="color: #ff00ff;">+</span>
+            </button>
+            <div class="info-content" id="infoContent">
+                <div style="margin-top: 1rem;">
+                    <p><strong style="color: #ff00ff;">LCA'</strong> = Length of lowercase alphabet (abcdefghijklmnopqrstuvwxyz + space) in points</p>
+                    <p><strong style="color: #ff00ff;">Cρ</strong> = Desired character density (characters per line, including spaces)</p>
+                    <p><strong style="color: #ff00ff;">S</strong> = Mathematical constant (0.0345 = 1/29 for Roman alphabet serif fonts)</p>
+                    <p><strong style="color: #ff00ff;">Ll</strong> = Resulting line length in points</p>
+                    <p style="padding-top: 0.5rem; font-size: 0.75rem; color: #d4d4d4;">
+                        Upload a font file (.ttf, .otf, or .woff) and set your desired font size. 
+                        The calculator will measure the lowercase alphabet with space and compute optimal line lengths 
+                        for various character densities. Accuracy: ~5% for common serif typefaces.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Left Column -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Font Upload -->
+                <div class="card">
+                    <h2>1. Load Font</h2>
+                    <label class="label">Upload Font File</label>
+                    <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2" class="hidden">
+                    <label for="fontUpload" class="upload-button">
+                        ↑ Choose Font File
+                    </label>
+                    <div id="fontInfo" class="font-info hidden"></div>
+                    <p class="helper-text">Supported formats: .ttf, .otf, .woff, .woff2</p>
+                    
+                    <div style="margin-top: 1rem;">
+                        <label class="label">Font Size</label>
+                        <div class="input-group">
+                            <input type="range" id="fontSizeRange" min="6" max="24" value="10" step="0.5" class="input-range" disabled>
+                            <input type="number" id="fontSizeNumber" value="10" step="0.5" class="input-number" disabled>
+                            <span style="color: #e5e5e5;">pt</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculated Metrics -->
+                <div class="card">
+                    <h2>Calculated Metrics</h2>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="metric-label">LCA' (Lowercase Alphabet + Space)</label>
+                        <div class="metric-value" id="lcaValue">—</div>
+                        <div id="lcaDisplay" class="helper-text hidden"></div>
+                    </div>
+                    <div>
+                        <label class="metric-label">S Constant</label>
+                        <div class="constant-value">0.0345</div>
+                    </div>
+                </div>
+
+                <!-- Character Density -->
+                <div class="card">
+                    <h2>2. Set Character Density</h2>
+                    <label class="label">Cρ (Characters Per Line)</label>
+                    <div class="input-group">
+                        <input type="range" id="densityRange" min="20" max="100" value="65" class="input-range">
+                        <input type="number" id="densityNumber" value="65" class="input-number">
+                        <span style="color: #e5e5e5;">CPL</span>
+                    </div>
+                    <p class="helper-text">Including spaces</p>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Results -->
+                <div class="result-card">
+                    <h2>Calculated Line Length</h2>
+                    <div id="resultsContent">
+                        <div class="empty-state">Upload a font to see results</div>
+                    </div>
+                </div>
+
+                <!-- Readability Benchmarks -->
+                <div class="card">
+                    <h2>Readability Benchmarks</h2>
+                    <div id="benchmarks"></div>
+                </div>
+
+                <!-- Research-Based Ranges -->
+                <div class="card">
+                    <h2>Research-Based Ranges</h2>
+                    <div style="font-size: 0.875rem;">
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Novice Readers (De Buen, 2014)</div>
+                            <div style="color: #e5e5e5;">Range: 34-60 CPL | Optimal: 45 CPL</div>
+                        </div>
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Expert Readers (De Buen, 2014)</div>
+                            <div style="color: #e5e5e5;">Range: 45-80 CPL | Optimal: 60 CPL</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Bringhurst Standard</div>
+                            <div style="color: #e5e5e5;">Range: 45-75 CPL | Ideal: 66 CPL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formula Display -->
+        <div class="formula-display" id="formulaDisplay">
+            <h3>Current Calculation</h3>
+            <div class="formula" id="formulaContent"></div>
+        </div>
+
+        <!-- Citation -->
+        <div class="citation">
+            <p>
+                <a href="https://doi.org/10.34314/vl.v50i1.3986" target="_blank" rel="noopener noreferrer">
+                    Peña, E. (2016). Calculating Line Length: an arithmetic approach. Visible Language, 50(1), 112-125.
+                </a>
+            </p>
+            <button class="zotero-button" id="zoteroButton">📚 Save to Zotero</button>
+        </div>
+    </div>
+
+    <script>
+        const S_CONSTANT = 0.0345;
+        const LCA_STRING = 'abcdefghijklmnopqrstuvwxyz ';
+        
+        let fontFile = null;
+        let fontName = '';
+        let fontSize = 10;
+        let lcaPrime = null;
+        let charDensity = 65;
+
+        const canvas = document.getElementById('measureCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const recommendations = [
+            { label: "Minimum (Novice)", value: 34 },
+            { label: "Optimal (Novice)", value: 45 },
+            { label: "Optimal (Expert)", value: 60 },
+            { label: "Bringhurst Ideal", value: 66 },
+            { label: "Maximum (Expert)", value: 80 }
+        ];
+
+        // Info toggle
+        document.getElementById('infoToggle').addEventListener('click', () => {
+            const content = document.getElementById('infoContent');
+            const toggle = document.getElementById('infoToggle').querySelector('span:last-child');
+            content.classList.toggle('visible');
+            toggle.textContent = content.classList.contains('visible') ? '−' : '+';
+        });
+
+        // Font upload
+        document.getElementById('fontUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const fontBuffer = event.target.result;
+                    const font = new FontFace('UploadedFont', fontBuffer);
+                    
+                    font.load().then((loadedFont) => {
+                        document.fonts.add(loadedFont);
+                        fontFile = loadedFont;
+                        fontName = file.name.replace(/\.[^/.]+$/, '');
+                        
+                        document.getElementById('fontInfo').textContent = `Loaded: ${fontName}`;
+                        document.getElementById('fontInfo').classList.remove('hidden');
+                        
+                        document.getElementById('fontSizeRange').disabled = false;
+                        document.getElementById('fontSizeNumber').disabled = false;
+                        
+                        calculateLCA();
+                    }).catch(err => {
+                        console.error('Font loading error:', err);
+                        alert('Error loading font. Please try a different font file.');
+                    });
+                } catch (err) {
+                    console.error('Font parsing error:', err);
+                    alert('Error parsing font file. Please ensure it\'s a valid .ttf, .otf, or .woff file.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Font size controls
+        document.getElementById('fontSizeRange').addEventListener('input', (e) => {
+            fontSize = parseFloat(e.target.value);
+            document.getElementById('fontSizeNumber').value = fontSize;
+            if (fontFile) calculateLCA();
+        });
+
+        document.getElementById('fontSizeNumber').addEventListener('input', (e) => {
+            fontSize = parseFloat(e.target.value) || 10;
+            document.getElementById('fontSizeRange').value = fontSize;
+            if (fontFile) calculateLCA();
+        });
+
+        // Density controls
+        document.getElementById('densityRange').addEventListener('input', (e) => {
+            charDensity = parseInt(e.target.value);
+            document.getElementById('densityNumber').value = charDensity;
+            updateResults();
+            updateBenchmarks();
+        });
+
+        document.getElementById('densityNumber').addEventListener('input', (e) => {
+            charDensity = parseInt(e.target.value) || 65;
+            document.getElementById('densityRange').value = charDensity;
+            updateResults();
+            updateBenchmarks();
+        });
+
+        function calculateLCA() {
+            ctx.font = `${fontSize}pt UploadedFont`;
+            lcaPrime = ctx.measureText(LCA_STRING).width;
+            
+            document.getElementById('lcaValue').textContent = `${lcaPrime.toFixed(2)} pt`;
+            document.getElementById('lcaDisplay').textContent = LCA_STRING;
+            document.getElementById('lcaDisplay').style.fontFamily = 'UploadedFont';
+            document.getElementById('lcaDisplay').classList.remove('hidden');
+            
+            updateResults();
+            updateBenchmarks();
+        }
+
+        function updateResults() {
+            if (!lcaPrime) return;
+            
+            const lineLength = lcaPrime * charDensity * S_CONSTANT;
+            const picas = Math.floor(lineLength / 12);
+            const picasRemainder = (lineLength % 12).toFixed(2);
+            const mm = (lineLength * 0.3527777778).toFixed(2);
+            const inches = (lineLength / 72).toFixed(2);
+            
+            const html = `
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div>
+                        <div style="font-size: 0.875rem; margin-bottom: 0.25rem; color: #e5e5e5;">Points</div>
+                        <div class="result-main">${lineLength.toFixed(2)} pt</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.875rem; margin-bottom: 0.25rem; color: #e5e5e5;">Picas</div>
+                        <div class="result-secondary">${picas}p${picasRemainder}</div>
+                    </div>
+                    <div class="result-grid">
+                        <div>
+                            <div style="font-size: 0.75rem; margin-bottom: 0.25rem; color: #e5e5e5;">Millimeters</div>
+                            <div class="result-small">${mm} mm</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; margin-bottom: 0.25rem; color: #e5e5e5;">Inches</div>
+                            <div class="result-small">${inches} in</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultsContent').innerHTML = html;
+            
+            // Show formula
+            const formulaHtml = `
+                <span style="color: #00ffff;">${lcaPrime.toFixed(2)}</span>
+                <span style="color: #d4d4d4;"> × </span>
+                <span style="color: #00ff00;">${charDensity}</span>
+                <span style="color: #d4d4d4;">(</span>
+                <span style="color: #ffff00;">${S_CONSTANT}</span>
+                <span style="color: #d4d4d4;">)</span>
+                <span style="color: #d4d4d4;"> = </span>
+                <span style="color: #ff00ff;">${lineLength.toFixed(2)}</span>
+                <span style="color: #d4d4d4;"> pt</span>
+            `;
+            
+            document.getElementById('formulaContent').innerHTML = formulaHtml;
+            document.getElementById('formulaDisplay').classList.add('visible');
+        }
+
+        function calculateForDensity(density) {
+            if (!lcaPrime) return { points: '—', picas: '—' };
+            const ll = lcaPrime * density * S_CONSTANT;
+            return {
+                points: ll.toFixed(2),
+                picas: `${Math.floor(ll / 12)}p${(ll % 12).toFixed(2)}`
+            };
+        }
+
+        function updateBenchmarks() {
+            const html = recommendations.map(rec => {
+                const result = calculateForDensity(rec.value);
+                return `
+                    <div class="benchmark-item">
+                        <div class="benchmark-header">
+                            <span style="font-weight: 600; font-size: 0.875rem;">${rec.label}</span>
+                            <button class="apply-button" onclick="applyDensity(${rec.value})">Apply</button>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                            <span style="color: #e5e5e5;">${rec.value} CPL</span>
+                            <span style="color: #ff00ff;">${result.picas}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('benchmarks').innerHTML = html;
+        }
+
+        function applyDensity(value) {
+            charDensity = value;
+            document.getElementById('densityRange').value = value;
+            document.getElementById('densityNumber').value = value;
+            updateResults();
+            updateBenchmarks();
+        }
+
+        // Zotero button
+        document.getElementById('zoteroButton').addEventListener('click', () => {
+            const title = 'Calculating Line Length: an arithmetic approach';
+            const creators = 'Ernesto Peña';
+            const url = 'https://doi.org/10.34314/vl.v50i1.3986';
+            window.open(`https://www.zotero.org/save?title=${encodeURIComponent(title)}&creators=${encodeURIComponent(creators)}&url=${encodeURIComponent(url)}`, '_blank');
+        });
+
+        // Initial benchmarks
+        updateBenchmarks();
+    </script>
+</body>
+</html>
