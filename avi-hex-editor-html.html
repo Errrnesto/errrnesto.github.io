@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVI HEX FRAME EDITOR | Glitch Pedagogy Tool</title>
+  <meta name="author" content="Ernesto Peña">
+  <meta name="description" content="Frame-by-frame hex editing tool for AVI video databending and glitch art creation with multi-byte selection, pattern corruption, and protected headers.">
+  <meta name="citation_author" content="Peña, Ernesto">
+  <meta name="citation_title" content="AVI Hex Frame Editor: A Glitch Pedagogy Tool">
+  <meta name="citation_date" content="2025">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XQLL5N022"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-8XQLL5N022');
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; color: #e0e0e0; font-family: 'Roboto Mono', monospace; padding: 16px; line-height: 1.5; }
+    header { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #222; }
+    h1 { color: #e91e8c; font-size: 1.3rem; margin-bottom: 2px; }
+    .subtitle { color: #666; font-size: 0.72rem; }
+    .upload-area { text-align: center; padding: 28px; border: 2px dashed #333; border-radius: 8px; margin-bottom: 16px; }
+    .upload-btn { display: inline-block; padding: 11px 22px; background: #1a1a1a; border: 2px solid #e91e8c; border-radius: 4px; color: #e91e8c; cursor: pointer; font-family: inherit; font-size: 0.8rem; }
+    .upload-btn:hover { background: #e91e8c; color: #0a0a0a; }
+    .panel { background: #111; border: 1px solid #222; border-radius: 6px; padding: 12px; margin-bottom: 14px; }
+    .panel-title { color: #e91e8c; font-size: 0.78rem; margin-bottom: 8px; font-weight: bold; }
+    .ctrl-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ctrl-btn { padding: 5px 9px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #e0e0e0; cursor: pointer; font-family: inherit; font-size: 0.68rem; transition: all 0.15s; }
+    .ctrl-btn:hover:not(:disabled) { border-color: #e91e8c; color: #e91e8c; }
+    .ctrl-btn.active { background: #e91e8c; border-color: #e91e8c; color: #0a0a0a; }
+    .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .info-box { padding: 8px; background: #1a1a2a; border-radius: 4px; font-size: 0.65rem; border-left: 2px solid #e91e8c; }
+    .timeline { height: 70px; background: #1a1a1a; border-radius: 4px; cursor: pointer; width: 100%; display: block; }
+    .hex-container { background: #000; color: #e0e0e0; padding: 12px; border-radius: 4px; font-family: 'Roboto Mono', monospace; font-size: 0.68rem; overflow: auto; max-height: 280px; }
+    .hex-row { display: flex; gap: 12px; margin-bottom: 3px; padding: 2px 0; }
+    .hex-row:hover { background: #1a1a1a; }
+    .hex-offset { color: #666; width: 70px; }
+    .hex-bytes { display: flex; gap: 3px; }
+    .hex-byte { width: 20px; text-align: center; background: transparent; border: none; color: #e0e0e0; font-family: inherit; font-size: 0.68rem; cursor: pointer; padding: 0; }
+    .hex-byte:hover { background: #333; }
+    .hex-byte.selected { background: #e91e8c; color: #0a0a0a; font-weight: bold; }
+    .hex-byte-protected { background: #1a1a2a !important; color: #666 !important; cursor: not-allowed !important; opacity: 0.6; }
+    .hex-ascii { color: #666; margin-left: 8px; }
+    .frame-preview { background: #000; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 400px; position: relative; }
+    .frame-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .frame-preview canvas { position: absolute; max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+    .preview-msg { color: #666; font-size: 0.65rem; text-align: center; padding: 20px; line-height: 1.6; }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 6px 8px; background: #1a1a1a; border: 1px solid #444; border-radius: 3px; color: #e0e0e0; font-family: inherit; font-size: 0.68rem; }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: #e91e8c; }
+    .field-group { margin-bottom: 10px; }
+    .field-label { display: block; font-size: 0.68rem; color: #888; margin-bottom: 4px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+    .radio-option { display: flex; align-items: center; gap: 4px; font-size: 0.68rem; }
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.65rem; }
+    .stat-item { background: #1a1a1a; padding: 6px 8px; border-radius: 3px; }
+    .stat-item strong { color: #e91e8c; }
+    .badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; background: #333; color: #888; }
+    .badge.warn { background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid #ff9800; }
+    .badge.safe { background: rgba(76,175,80,0.2); color: #4caf50; border: 1px solid #4caf50; }
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 1150px) { .main-grid, .tools-grid { grid-template-columns: 1fr; } }
+    .hidden { display: none !important; }
+    footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid #222; font-size: 0.65rem; color: #666; text-align: center; }
+    footer a { color: #e91e8c; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AVI Hex Frame Editor</h1>
+    <p class="subtitle">Frame-by-frame hex editing • Multi-byte selection • Pattern corruption</p>
+  </header>
+
+  <div class="upload-area">
+    <label class="upload-btn"><input type="file" accept=".avi" id="fileInput" style="display:none">Choose AVI File</label>
+  </div>
+
+  <div id="controls" class="hidden">
+    <div class="ctrl-row" style="margin-bottom:8px">
+      <span id="fileName" style="color:#888;font-size:0.72rem;flex:1"></span>
+      <button class="ctrl-btn" id="undoBtn" disabled>↶</button>
+      <button class="ctrl-btn" id="redoBtn" disabled>↷</button>
+      <button class="ctrl-btn" id="resetBtn">↺</button>
+      <button class="ctrl-btn active" id="downloadBtn">⬇ Export</button>
+    </div>
+    <div id="changeCount" style="font-size:0.65rem;color:#666;margin-bottom:14px">No changes</div>
+  </div>
+
+  <div id="content" class="hidden">
+    <!-- TIMELINE -->
+    <div class="panel">
+      <div class="panel-title" style="display:flex;justify-content:space-between">
+        <span>Timeline</span>
+        <span style="font-size:0.65rem;color:#888;font-weight:normal" id="timeDisplay">Frame 0/0</span>
+      </div>
+      <canvas id="timeline" class="timeline"></canvas>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <div class="ctrl-row" style="margin:0">
+          <button class="ctrl-btn" id="playBtn">▶</button>
+          <button class="ctrl-btn" id="stepBackBtn">←</button>
+          <button class="ctrl-btn" id="stepBtn">→</button>
+          <button class="ctrl-btn" id="rewindBtn">↺</button>
+        </div>
+        <input type="number" id="frameInput" min="0" max="0" value="0" style="width:60px;padding:4px">
+        <div style="flex:1"></div>
+        <div class="stat-row" style="gap:8px;grid-template-columns:auto auto">
+          <div class="stat-item">Total: <strong id="totalFrames">0</strong></div>
+          <div class="stat-item">Video: <strong id="videoFrames">0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+      <!-- LEFT: Preview -->
+      <div>
+        <div class="panel">
+          <div class="panel-title">Preview</div>
+          <div class="frame-preview" id="framePreview">
+            <img id="previewImg" style="display:none">
+            <canvas id="previewOverlay" style="display:none"></canvas>
+            <div class="preview-msg" id="previewMessage">No preview</div>
+          </div>
+          <div id="frameInfo" style="font-size:0.65rem;color:#888;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Hex + Tools -->
+      <div>
+        <div class="panel">
+          <div class="panel-title" style="display:flex;justify-content:space-between">
+            <span>Hex <span style="font-weight:normal;font-size:0.7rem" id="hexTitle"></span></span>
+            <span class="badge warn" id="protectionBadge" onclick="toggleFrameProtection()" style="cursor:pointer;user-select:none" title="Click to toggle frame header protection">⚠ Frame Protected</span>
+          </div>
+          <div class="hex-container" id="hexView"></div>
+          <div style="font-size:0.6rem;color:#666;margin-top:8px">Click: select • Shift: add • Ctrl: toggle</div>
+        </div>
+
+        <div class="tools-grid">
+          <div>
+            <div class="panel">
+              <div class="panel-title">1. SELECTION</div>
+              <div class="field-label" style="margin-bottom:6px">Find & Select</div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:10px">
+                <input type="text" id="findInput" placeholder="FF D8">
+                <button class="ctrl-btn" onclick="findAndSelect()">Find</button>
+              </div>
+              <div class="field-label" style="margin-bottom:6px">Select Bytes</div>
+              <div class="ctrl-row" style="margin:0">
+                <button class="ctrl-btn" onclick="selectColumn()">↕</button>
+                <button class="ctrl-btn" onclick="selectRow()">↔</button>
+                <button class="ctrl-btn" onclick="expandSelection()">+</button>
+                <button class="ctrl-btn" onclick="shrinkSelection()">−</button>
+                <button class="ctrl-btn" onclick="clearSelection()">✕</button>
+              </div>
+              <div id="selectionInfo" style="font-size:0.6rem;color:#666;margin-top:8px;padding-top:8px;border-top:1px solid #222">No selection</div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title">2. SCOPE</div>
+              <div class="radio-group" style="margin:0">
+                <label class="radio-option">
+                  <input type="radio" name="frameRange" value="current" checked onchange="updateRangeMode()">Current
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="frameRange" value="all" onchange="updateRangeMode()">All
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="frameRange" value="custom" onchange="updateRangeMode()">Range
+                </label>
+              </div>
+              <div id="customRangeDisplay" class="hidden" style="margin-top:8px;padding:8px;background:#1a1a2a;border-radius:4px;font-size:0.6rem">
+                <span style="color:#e91e8c">Frame <span id="rangeStartDisplay">0</span>-<span id="rangeEndDisplay">0</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel">
+              <div class="panel-title">3. ACTION</div>
+              <div class="field-label" style="margin-bottom:6px">Basic</div>
+              <div class="ctrl-row" style="margin:0 0 6px 0">
+                <button class="ctrl-btn" onclick="deleteSelection()">00</button>
+                <button class="ctrl-btn" onclick="invertSelection()">⇄</button>
+                <button class="ctrl-btn" onclick="randomizeSelection()">🎲</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:10px">
+                <input type="text" id="setValueInput" placeholder="Hex" maxlength="2">
+                <button class="ctrl-btn" onclick="setSelectionValue()">Set</button>
+              </div>
+              <div class="field-label" style="margin-bottom:6px;padding-top:8px;border-top:1px solid #222">Advanced</div>
+              <div class="field-group">
+                <label class="field-label">Gradient</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:4px">
+                  <input type="text" id="gradStart" placeholder="00" maxlength="2">
+                  <input type="text" id="gradEnd" placeholder="FF" maxlength="2">
+                  <button class="ctrl-btn" onclick="gradientFill('relative')">REL</button>
+                  <button class="ctrl-btn" onclick="gradientFill('absolute')">ABS</button>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Pattern</label>
+                <div style="display:grid;grid-template-columns:1fr auto;gap:6px">
+                  <input type="text" id="patternInput" placeholder="FF 00">
+                  <button class="ctrl-btn" onclick="patternFill()">Fill</button>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Shift</label>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px">
+                  <input type="number" id="shiftAmount" value="16" min="-255" max="255">
+                  <button class="ctrl-btn" onclick="shiftSelection(-1)">−</button>
+                  <button class="ctrl-btn" onclick="shiftSelection(1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    AVI Hex Frame Editor — Glitch Pedagogy Tool<br>
+    Ernesto Peña | <a href="https://ernestopena.com">ernestopena.com</a>
+  </footer>
+
+  <script>
+    let aviData=null,frames=[],currentFrame=0,hexData=null,selectedBytes=new Set();
+    let originalFileName='',videoBlob=null,customRangeStart=0,customRangeEnd=0,draggingHandle=null;
+    let protectedHeaderEnd=0,originalBytes=null,undoStack=[],redoStack=[];
+    let isPlaying=false,playbackInterval=null;
+    let frameProtectionEnabled=true; // Toggle for frame-level protection
+    let currentFrameProtectionEnd=0; // Per-frame protection boundary
+
+    document.getElementById('fileInput').addEventListener('change',e=>{
+      const file=e.target.files[0];if(!file)return;
+      originalFileName=file.name;
+      document.getElementById('fileName').textContent=file.name;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        try{
+          const buf=ev.target.result;
+          const view=new DataView(buf);
+          const bytes=new Uint8Array(buf);
+          if(String.fromCharCode(...bytes.slice(0,4))!=='RIFF')return alert('Not AVI');
+          if(String.fromCharCode(...bytes.slice(8,12))!=='AVI ')return alert('Not AVI');
+          let pos=12,moviStart=null,moviSize=0;
+          while(pos<bytes.length-8){
+            const id=String.fromCharCode(...bytes.slice(pos,pos+4));
+            const sz=view.getUint32(pos+4,true);
+            if(id==='movi'){moviStart=pos+8;moviSize=sz;break;}
+            if(id==='LIST'&&String.fromCharCode(...bytes.slice(pos+8,pos+12))==='movi'){moviStart=pos+12;moviSize=sz-4;break;}
+            const next=pos+8+sz+(sz%2);
+            if(next<=pos||sz>bytes.length)break;
+            pos=next;
+          }
+          if(!moviStart)return alert('No movi');
+          const foundFrames=[];
+          pos=moviStart;
+          let fi=0;
+          while(pos<moviStart+moviSize-8&&pos<bytes.length-8){
+            const id=String.fromCharCode(...bytes.slice(pos,pos+4));
+            const sz=view.getUint32(pos+4,true);
+            if(id.match(/^\d{2}(db|dc|wb)/i)){
+              foundFrames.push({index:fi++,type:id,offset:pos,dataOffset:pos+8,size:sz,
+                isVideo:id.toLowerCase().endsWith('db')||id.toLowerCase().endsWith('dc')});
+            }
+            const next=pos+8+sz+(sz%2);
+            if(next<=pos)break;
+            pos=next;
+          }
+          aviData={bytes,frames:foundFrames,headerEnd:moviStart};
+          frames=foundFrames;
+          protectedHeaderEnd=moviStart;
+          originalBytes=new Uint8Array(bytes);
+          undoStack=[];redoStack=[];
+          if(frames.length>0){
+            customRangeStart=0;customRangeEnd=frames.length-1;
+            currentFrame=0;loadFrameHex(0);
+            document.getElementById('controls').classList.remove('hidden');
+            document.getElementById('content').classList.remove('hidden');
+            document.getElementById('frameInput').max=frames.length-1;
+            document.getElementById('totalFrames').textContent=frames.length;
+            document.getElementById('videoFrames').textContent=frames.filter(f=>f.isVideo).length;
+            updateRangeDisplay();updateFrameInfo();drawTimeline();updateChangeCount();
+            document.getElementById('undoBtn').disabled=true;
+            document.getElementById('redoBtn').disabled=true;
+          }
+        }catch(err){alert('Parse error: '+err.message);}
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function loadFrameHex(fi){
+      if(!aviData||!frames[fi])return;
+      const f=frames[fi];
+      hexData=aviData.bytes.slice(f.dataOffset,f.dataOffset+f.size);
+      
+      // Detect frame-level protection (find FF DA - Start of Scan marker in JPEG)
+      currentFrameProtectionEnd=0;
+      if(frameProtectionEnabled&&f.isVideo){
+        for(let i=0;i<hexData.length-1;i++){
+          if(hexData[i]===0xFF&&hexData[i+1]===0xDA){
+            // Found SOS marker - protect everything before it + the marker itself
+            currentFrameProtectionEnd=i+2;
+            break;
+          }
+        }
+      }
+      
+      selectedBytes.clear();renderHex();updatePreview();updateSelectionInfo();
+      updateProtectionBadge();
+    }
+
+    function toggleFrameProtection(){
+      frameProtectionEnabled=!frameProtectionEnabled;
+      updateProtectionBadge();
+      loadFrameHex(currentFrame); // Reload to update protection
+    }
+
+    function updateProtectionBadge(){
+      const badge=document.getElementById('protectionBadge');
+      const f=frames[currentFrame];
+      
+      if(!frameProtectionEnabled){
+        badge.className='badge safe';
+        badge.textContent='⚠ Protection OFF';
+        badge.title='Click to enable frame header protection';
+      }else if(currentFrameProtectionEnd>0){
+        badge.className='badge warn';
+        badge.textContent=`⚠ Protected (${currentFrameProtectionEnd}b)`;
+        badge.title=`Click to disable • ${currentFrameProtectionEnd} bytes protected`;
+      }else{
+        badge.className='badge warn';
+        badge.textContent='⚠ File Header Protected';
+        badge.title='Click to disable file header protection (risky!)';
+      }
+    }
+
+    function renderHex(){
+      if(!hexData)return;
+      const cont=document.getElementById('hexView');
+      cont.innerHTML='';
+      const f=frames[currentFrame];
+      for(let i=0;i<hexData.length;i+=16){
+        const row=document.createElement('div');
+        row.className='hex-row';
+        const off=document.createElement('span');
+        off.className='hex-offset';
+        off.textContent=i.toString(16).padStart(8,'0').toUpperCase();
+        row.appendChild(off);
+        const bd=document.createElement('div');
+        bd.className='hex-bytes';
+        const rb=hexData.slice(i,Math.min(i+16,hexData.length));
+        Array.from(rb).forEach((b,j)=>{
+          const ao=f.dataOffset+i+j;
+          const relativeOffset=i+j;
+          const prot=ao<protectedHeaderEnd||(frameProtectionEnabled&&relativeOffset<currentFrameProtectionEnd);
+          const inp=document.createElement('input');
+          inp.className='hex-byte';
+          if(prot){inp.className+=' hex-byte-protected';inp.disabled=true;}
+          inp.value=b.toString(16).padStart(2,'0').toUpperCase();
+          inp.maxLength=2;
+          inp.dataset.index=i+j;
+          if(!prot){
+            inp.onclick=e=>{
+              const idx=parseInt(inp.dataset.index);
+              if(e.shiftKey&&selectedBytes.size>0)selectedBytes.add(idx);
+              else if(e.ctrlKey||e.metaKey)selectedBytes.has(idx)?selectedBytes.delete(idx):selectedBytes.add(idx);
+              else{selectedBytes.clear();selectedBytes.add(idx);}
+              updateSelectionInfo();renderHex();
+              const ni=document.querySelector(`input[data-index="${idx}"]`);
+              if(ni){ni.focus();ni.select();}
+            };
+            inp.onchange=()=>editByte(parseInt(inp.dataset.index),inp.value);
+            inp.onkeydown=e=>{
+              const idx=parseInt(inp.dataset.index);
+              let ti=null;
+              if(e.key==='ArrowRight'||e.key==='Tab'){e.preventDefault();ti=idx+1;}
+              else if(e.key==='ArrowLeft'){e.preventDefault();ti=idx-1;}
+              else if(e.key==='ArrowDown'){e.preventDefault();ti=idx+16;}
+              else if(e.key==='ArrowUp'){e.preventDefault();ti=idx-16;}
+              else if(e.key==='Enter'){e.preventDefault();inp.blur();return;}
+              if(ti!==null){
+                const t=document.querySelector(`input[data-index="${ti}"]`);
+                if(t&&!t.disabled){t.focus();t.select();}
+              }
+            };
+          }
+          if(selectedBytes.has(i+j))inp.classList.add('selected');
+          bd.appendChild(inp);
+        });
+        row.appendChild(bd);
+        const asc=document.createElement('span');
+        asc.className='hex-ascii';
+        asc.textContent=Array.from(rb).map(b=>(b>=32&&b<=126)?String.fromCharCode(b):'.').join('');
+        row.appendChild(asc);
+        cont.appendChild(row);
+      }
+    }
+
+    function updatePreview(){
+      const img=document.getElementById('previewImg');
+      const msg=document.getElementById('previewMessage');
+      const overlay=document.getElementById('previewOverlay');
+      img.style.display='none';msg.style.display='block';overlay.style.display='none';
+      
+      if(!hexData){msg.innerHTML='No data';return;}
+      if(!frames[currentFrame].isVideo){msg.innerHTML='Audio';return;}
+      
+      if(hexData[0]===0xFF&&hexData[1]===0xD8){
+        try{
+          const blob=new Blob([hexData],{type:'image/jpeg'});
+          const url=URL.createObjectURL(blob);
+          img.onload=()=>{
+            msg.style.display='none';
+            img.style.display='block';
+            
+            // Draw selection overlay
+            if(selectedBytes.size>0){
+              overlay.width=img.naturalWidth;
+              overlay.height=img.naturalHeight;
+              overlay.style.width=img.width+'px';
+              overlay.style.height=img.height+'px';
+              overlay.style.display='block';
+              
+              const ctx=overlay.getContext('2d');
+              ctx.clearRect(0,0,overlay.width,overlay.height);
+              
+              // Calculate approximate position of selected bytes
+              const selArray=Array.from(selectedBytes).sort((a,b)=>a-b);
+              const minByte=Math.min(...selArray);
+              const maxByte=Math.max(...selArray);
+              const frameSize=hexData.length;
+              
+              // Map byte position to approximate screen position (very rough)
+              const topPercent=minByte/frameSize;
+              const heightPercent=(maxByte-minByte)/frameSize;
+              
+              const y=topPercent*overlay.height;
+              const h=Math.max(heightPercent*overlay.height,20);
+              
+              // Draw semi-transparent overlay
+              ctx.fillStyle='rgba(233,30,140,0.2)';
+              ctx.fillRect(0,y,overlay.width,h);
+              
+              // Draw border
+              ctx.strokeStyle='rgba(233,30,140,0.8)';
+              ctx.lineWidth=2;
+              ctx.strokeRect(0,y,overlay.width,h);
+            }
+          };
+          img.onerror=()=>msg.innerHTML='Error';
+          img.src=url;
+          if(img.dataset.oldUrl)URL.revokeObjectURL(img.dataset.oldUrl);
+          img.dataset.oldUrl=url;
+        }catch(e){msg.innerHTML='Error';}
+      }else{
+        const sig=Array.from(hexData.slice(0,4)).map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+        msg.innerHTML=`Codec: ${sig}<br>Not supported`;
+      }
+    }
+
+    function updateFrameInfo(){
+      const f=frames[currentFrame];
+      if(!f)return;
+      document.getElementById('hexTitle').textContent=`(${currentFrame})`;
+      document.getElementById('timeDisplay').textContent=`Frame ${currentFrame}/${frames.length-1}`;
+      let info=`<strong>${f.type}</strong> • ${f.isVideo?'Video':'Audio'} • ${f.size.toLocaleString()}b<br>0x${f.dataOffset.toString(16).toUpperCase()}`;
+      if(f.dataOffset<protectedHeaderEnd){
+        const p=Math.min(f.size,protectedHeaderEnd-f.dataOffset);
+        info+=`<br><span class="badge warn" style="margin-top:4px;display:inline-block">⚠ ${p} protected</span>`;
+      }
+      document.getElementById('frameInfo').innerHTML=info;
+      document.getElementById('stepBackBtn').disabled=currentFrame===0;
+      document.getElementById('stepBtn').disabled=currentFrame===frames.length-1;
+      drawTimeline();
+    }
+
+    function drawTimeline(){
+      const c=document.getElementById('timeline');
+      if(!c.getContext)return;
+      const ctx=c.getContext('2d');
+      const r=c.getBoundingClientRect();
+      c.width=r.width;c.height=70;
+      const w=c.width,h=c.height;
+      ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+      
+      // Draw occurrence bars if there's a selection
+      if(selectedBytes.size>0){
+        const selectionPattern=Array.from(selectedBytes).sort((a,b)=>a-b);
+        const occurrences=new Array(frames.length).fill(0);
+        
+        // Scan all frames for selection pattern
+        for(let fi=0;fi<frames.length;fi++){
+          const frame=frames[fi];
+          let count=0;
+          selectionPattern.forEach(idx=>{
+            if(idx<frame.size){
+              const ao=frame.dataOffset+idx;
+              if(ao>=protectedHeaderEnd)count++;
+            }
+          });
+          occurrences[fi]=count;
+        }
+        
+        const maxOcc=Math.max(...occurrences,1);
+        
+        // Draw bars
+        for(let i=0;i<frames.length;i++){
+          if(occurrences[i]>0){
+            const x=(i/frames.length)*w;
+            const barWidth=Math.max(1,w/frames.length);
+            const barHeight=(occurrences[i]/maxOcc)*(h-20);
+            const intensity=occurrences[i]/maxOcc;
+            const r=Math.floor(intensity*233);
+            const g=Math.floor((1-intensity)*30);
+            const b=Math.floor((1-intensity)*140);
+            ctx.fillStyle=`rgba(${r},${g},${b},0.6)`;
+            ctx.fillRect(x,h-20-barHeight,barWidth,barHeight);
+          }
+        }
+      }
+      
+      const rt=document.querySelector('input[name="frameRange"]:checked')?.value;
+      if(rt==='custom'){
+        const sx=(customRangeStart/frames.length)*w;
+        const ex=((customRangeEnd+1)/frames.length)*w;
+        ctx.fillStyle='rgba(233,30,140,0.15)';ctx.fillRect(sx,0,ex-sx,h);
+        ctx.strokeStyle='#e91e8c';ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,h);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ex,0);ctx.lineTo(ex,h);ctx.stroke();
+      }
+      const cx=(currentFrame/Math.max(frames.length-1,1))*w;
+      ctx.strokeStyle='#00bcd4';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,h);ctx.stroke();
+      ctx.fillStyle='#00bcd4';ctx.shadowColor='#00bcd4';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(cx,h-10,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='#666';ctx.font='10px Roboto Mono';
+      ctx.textAlign='left';ctx.fillText('0',2,h-2);
+      ctx.textAlign='right';ctx.fillText(frames.length-1,w-2,h-2);
+    }
+
+    document.getElementById('timeline').addEventListener('mousedown',e=>{
+      stopPlayback();
+      const rt=document.querySelector('input[name="frameRange"]:checked')?.value;
+      const r=e.target.getBoundingClientRect();
+      const x=e.clientX-r.left;
+      const fi=Math.floor((x/r.width)*frames.length);
+      if(rt==='custom'){
+        const tol=15;
+        const sx=(customRangeStart/frames.length)*r.width;
+        const ex=((customRangeEnd+1)/frames.length)*r.width;
+        if(Math.abs(x-sx)<tol)draggingHandle='start';
+        else if(Math.abs(x-ex)<tol)draggingHandle='end';
+        else{draggingHandle='end';customRangeStart=fi;customRangeEnd=fi;updateRangeDisplay();drawTimeline();}
+      }else if(fi>=0&&fi<frames.length)setFrame(fi);
+    });
+
+    document.getElementById('timeline').addEventListener('mousemove',e=>{
+      if(!draggingHandle)return;
+      const r=e.target.getBoundingClientRect();
+      const x=e.clientX-r.left;
+      const fi=Math.max(0,Math.min(frames.length-1,Math.floor((x/r.width)*frames.length)));
+      if(draggingHandle==='start')customRangeStart=Math.min(fi,customRangeEnd);
+      else if(draggingHandle==='end')customRangeEnd=Math.max(fi,customRangeStart);
+      updateRangeDisplay();drawTimeline();
+    });
+
+    document.addEventListener('mouseup',()=>draggingHandle=null);
+
+    function setFrame(v){
+      const nf=parseInt(v);
+      if(nf>=0&&nf<frames.length){
+        currentFrame=nf;
+        document.getElementById('frameInput').value=nf;
+        loadFrameHex(nf);updateFrameInfo();
+      }
+    }
+
+    function startPlayback(){
+      if(!frames.length)return;
+      isPlaying=true;
+      document.getElementById('playBtn').textContent='❚❚';
+      playbackInterval=setInterval(()=>{
+        if(currentFrame<frames.length-1)setFrame(currentFrame+1);
+        else stopPlayback();
+      },100);
+    }
+
+    function stopPlayback(){
+      isPlaying=false;
+      document.getElementById('playBtn').textContent='▶';
+      if(playbackInterval){clearInterval(playbackInterval);playbackInterval=null;}
+    }
+
+    document.getElementById('playBtn').onclick=()=>isPlaying?stopPlayback():startPlayback();
+    document.getElementById('stepBackBtn').onclick=()=>{stopPlayback();setFrame(currentFrame-1);};
+    document.getElementById('stepBtn').onclick=()=>{stopPlayback();setFrame(currentFrame+1);};
+    document.getElementById('rewindBtn').onclick=()=>{stopPlayback();setFrame(0);};
+    document.getElementById('frameInput').onchange=e=>setFrame(e.target.value);
+
+    document.addEventListener('keydown',e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();if(undoStack.length)undo();}
+      else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();if(redoStack.length)redo();}
+    });
+
+    function saveState(){
+      undoStack.push(new Uint8Array(aviData.bytes));
+      if(undoStack.length>50)undoStack.shift();
+      redoStack=[];
+      document.getElementById('undoBtn').disabled=false;
+      document.getElementById('redoBtn').disabled=true;
+      updateChangeCount();
+    }
+
+    function undo(){
+      if(!undoStack.length)return;
+      redoStack.push(new Uint8Array(aviData.bytes));
+      aviData.bytes=new Uint8Array(undoStack.pop());
+      loadFrameHex(currentFrame);videoBlob=null;
+      document.getElementById('undoBtn').disabled=undoStack.length===0;
+      document.getElementById('redoBtn').disabled=false;
+      updateChangeCount();
+    }
+
+    function redo(){
+      if(!redoStack.length)return;
+      undoStack.push(new Uint8Array(aviData.bytes));
+      aviData.bytes=new Uint8Array(redoStack.pop());
+      loadFrameHex(currentFrame);videoBlob=null;
+      document.getElementById('undoBtn').disabled=false;
+      document.getElementById('redoBtn').disabled=redoStack.length===0;
+      updateChangeCount();
+    }
+
+    document.getElementById('resetBtn').onclick=()=>{
+      if(!originalBytes||!confirm('Reset?'))return;
+      undoStack=[];redoStack=[];
+      aviData.bytes=new Uint8Array(originalBytes);
+      loadFrameHex(currentFrame);videoBlob=null;
+      document.getElementById('undoBtn').disabled=true;
+      document.getElementById('redoBtn').disabled=true;
+      updateChangeCount();
+    };
+
+    function updateChangeCount(){
+      if(!originalBytes)return;
+      let c=0;
+      for(let i=0;i<aviData.bytes.length;i++)if(aviData.bytes[i]!==originalBytes[i])c++;
+      const el=document.getElementById('changeCount');
+      if(c===0){el.textContent='No changes';el.style.color='#666';}
+      else{el.textContent=`${c.toLocaleString()} modified`;el.style.color='#e91e8c';}
+    }
+
+    function editByte(idx,val){
+      const v=parseInt(val,16);
+      if(isNaN(v)||v<0||v>255)return;
+      const f=frames[currentFrame];
+      const ao=f.dataOffset+idx;
+      if(ao<protectedHeaderEnd){alert('File header protected');renderHex();return;}
+      if(frameProtectionEnabled&&idx<currentFrameProtectionEnd){alert('Frame header protected (click badge to disable)');renderHex();return;}
+      saveState();hexData[idx]=v;aviData.bytes[ao]=v;videoBlob=null;renderHex();updatePreview();
+    }
+
+    document.getElementById('downloadBtn').onclick=()=>{
+      if(!aviData)return;
+      const blob=new Blob([aviData.bytes],{type:'video/x-msvideo'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=originalFileName.replace(/\.avi$/i,'_modified.avi');
+      a.click();URL.revokeObjectURL(url);
+    };
+
+    function updateSelectionInfo(){
+      const c=selectedBytes.size;
+      const el=document.getElementById('selectionInfo');
+      if(c===0){el.textContent='No selection';el.style.color='#666';}
+      else{el.textContent=`${c} byte${c!==1?'s':''}`;el.style.color='#e91e8c';}
+      drawTimeline(); // Redraw timeline to show occurrence bars
+    }
+
+    function selectColumn(){
+      if(!selectedBytes.size)return alert('Select byte first');
+      
+      // Find all unique columns from selected bytes
+      const columns=new Set();
+      selectedBytes.forEach(i=>{
+        columns.add(i%16);
+      });
+      
+      // Select all bytes in those columns
+      selectedBytes.clear();
+      columns.forEach(col=>{
+        for(let i=col;i<hexData.length;i+=16){
+          selectedBytes.add(i);
+        }
+      });
+      
+      updateSelectionInfo();renderHex();updatePreview();
+    }
+
+    function selectRow(){
+      if(!selectedBytes.size)return alert('Select byte first');
+      
+      // Find all unique rows from selected bytes
+      const rows=new Set();
+      selectedBytes.forEach(i=>{
+        rows.add(Math.floor(i/16));
+      });
+      
+      // Select all bytes in those rows
+      selectedBytes.clear();
+      rows.forEach(row=>{
+        const rowStart=row*16;
+        for(let i=rowStart;i<Math.min(rowStart+16,hexData.length);i++){
+          selectedBytes.add(i);
+        }
+      });
+      
+      updateSelectionInfo();renderHex();updatePreview();
+    }
+
+    function expandSelection(){
+      if(!selectedBytes.size)return alert('Select first');
+      const add=new Set();
+      selectedBytes.forEach(i=>{
+        if(i>0)add.add(i-1);
+        if(i<hexData.length-1)add.add(i+1);
+        if(i>=16)add.add(i-16);
+        if(i+16<hexData.length)add.add(i+16);
+      });
+      add.forEach(i=>selectedBytes.add(i));
+      updateSelectionInfo();renderHex();updatePreview();
+    }
+
+    function shrinkSelection(){
+      if(!selectedBytes.size)return;
+      const rem=new Set();
+      selectedBytes.forEach(i=>{
+        const hasEmpty=(i>0&&!selectedBytes.has(i-1))||(i<hexData.length-1&&!selectedBytes.has(i+1))||(i>=16&&!selectedBytes.has(i-16))||(i+16<hexData.length&&!selectedBytes.has(i+16));
+        if(hasEmpty)rem.add(i);
+      });
+      rem.forEach(i=>selectedBytes.delete(i));
+      updateSelectionInfo();renderHex();updatePreview();
+    }
+
+    function clearSelection(){selectedBytes.clear();updateSelectionInfo();renderHex();updatePreview();}
+
+    function findAndSelect(){
+      const ft=document.getElementById('findInput').value.replace(/\s/g,'');
+      if(!ft||!hexData)return alert('Enter hex');
+      const fb=ft.match(/.{1,2}/g)?.map(b=>parseInt(b,16))||[];
+      if(fb.some(isNaN))return alert('Invalid hex');
+      selectedBytes.clear();
+      const f=frames[currentFrame];
+      for(let i=0;i<=hexData.length-fb.length;i++){
+        if(f.dataOffset+i<protectedHeaderEnd)continue;
+        if(frameProtectionEnabled&&i<currentFrameProtectionEnd)continue;
+        let m=true;
+        for(let j=0;j<fb.length;j++)if(hexData[i+j]!==fb[j]){m=false;break;}
+        if(m)for(let j=0;j<fb.length;j++)selectedBytes.add(i+j);
+      }
+      updateSelectionInfo();renderHex();updatePreview();
+      if(!selectedBytes.size)alert('Not found');
+    }
+
+    function applyAction(fn,name){
+      if(!selectedBytes.size)return alert('Select bytes');
+      const [rs,re]=getFrameRange();
+      const rt=document.querySelector('input[name="frameRange"]:checked').value;
+      let msg=`${name} ${selectedBytes.size} bytes`;
+      if(rt==='current')msg+=` in current frame?`;
+      else msg+=` across ${re-rs+1} frames?`;
+      if(!confirm(msg))return;
+      saveState();
+      let mod=0,skip=0;
+      if(rt==='current'){
+        const f=frames[currentFrame];
+        selectedBytes.forEach(i=>{
+          const ao=f.dataOffset+i;
+          if(ao<protectedHeaderEnd){skip++;return;}
+          if(frameProtectionEnabled&&i<currentFrameProtectionEnd){skip++;return;}
+          fn(f,i);mod++;
+        });
+      }else{
+        const sp=Array.from(selectedBytes).sort((a,b)=>a-b);
+        for(let fi=rs;fi<=re;fi++){
+          const f=frames[fi];
+          // Detect frame protection for this frame
+          let frameProtEnd=0;
+          if(frameProtectionEnabled&&f.isVideo){
+            const frameData=aviData.bytes.slice(f.dataOffset,f.dataOffset+f.size);
+            for(let i=0;i<frameData.length-1;i++){
+              if(frameData[i]===0xFF&&frameData[i+1]===0xDA){
+                frameProtEnd=i+2;
+                break;
+              }
+            }
+          }
+          sp.forEach(i=>{
+            if(i>=f.size)return;
+            const ao=f.dataOffset+i;
+            if(ao<protectedHeaderEnd){skip++;return;}
+            if(frameProtectionEnabled&&i<frameProtEnd){skip++;return;}
+            fn(f,i);mod++;
+          });
+        }
+      }
+      loadFrameHex(currentFrame);videoBlob=null;
+      alert(`${name}: ${mod}${skip?`\n${skip} skipped`:''}`);
+    }
+
+    function deleteSelection(){
+      applyAction((f,i)=>{aviData.bytes[f.dataOffset+i]=0;if(f.index===currentFrame)hexData[i]=0;},'Delete');
+    }
+
+    function randomizeSelection(){
+      applyAction((f,i)=>{const v=Math.floor(Math.random()*256);aviData.bytes[f.dataOffset+i]=v;if(f.index===currentFrame)hexData[i]=v;},'Randomize');
+    }
+
+    function invertSelection(){
+      applyAction((f,i)=>{const v=0xFF-aviData.bytes[f.dataOffset+i];aviData.bytes[f.dataOffset+i]=v;if(f.index===currentFrame)hexData[i]=v;},'Invert');
+    }
+
+    function setSelectionValue(){
+      if(!selectedBytes.size)return alert('Select bytes');
+      const vi=document.getElementById('setValueInput').value;
+      if(!vi)return alert('Enter hex');
+      const v=parseInt(vi,16);
+      if(isNaN(v)||v<0||v>255)return alert('Invalid');
+      applyAction((f,i)=>{aviData.bytes[f.dataOffset+i]=v;if(f.index===currentFrame)hexData[i]=v;},`Set ${vi}`);
+    }
+
+    function gradientFill(mode='relative'){
+      if(!selectedBytes.size)return alert('Select bytes');
+      const si=document.getElementById('gradStart').value||'00';
+      const ei=document.getElementById('gradEnd').value||'FF';
+      const sv=parseInt(si,16);
+      const ev=parseInt(ei,16);
+      if(isNaN(sv)||isNaN(ev))return alert('Invalid');
+      
+      const [rs,re]=getFrameRange();
+      const rt=document.querySelector('input[name="frameRange"]:checked').value;
+      
+      if(mode==='absolute'){
+        if(rt==='current')return alert('Absolute gradient requires multiple frames');
+        if(!confirm(`Gradient ${si}→${ei} across ${re-rs+1} frames?`))return;
+        
+        saveState();
+        let mod=0,skip=0;
+        const totalFrames=re-rs+1;
+        
+        for(let fi=rs;fi<=re;fi++){
+          const f=frames[fi];
+          const frameProgress=(fi-rs)/(totalFrames-1);
+          const frameValue=Math.round(sv+(ev-sv)*frameProgress);
+          
+          // Detect frame protection
+          let frameProtEnd=0;
+          if(frameProtectionEnabled&&f.isVideo){
+            const frameData=aviData.bytes.slice(f.dataOffset,f.dataOffset+f.size);
+            for(let i=0;i<frameData.length-1;i++){
+              if(frameData[i]===0xFF&&frameData[i+1]===0xDA){frameProtEnd=i+2;break;}
+            }
+          }
+          
+          selectedBytes.forEach(i=>{
+            if(i>=f.size)return;
+            const ao=f.dataOffset+i;
+            if(ao<protectedHeaderEnd){skip++;return;}
+            if(frameProtectionEnabled&&i<frameProtEnd){skip++;return;}
+            aviData.bytes[ao]=frameValue;
+            mod++;
+          });
+        }
+        
+        loadFrameHex(currentFrame);videoBlob=null;
+        alert(`Absolute gradient: ${mod}${skip?`\n${skip} skipped`:''}`);
+      }else{
+        // Relative - same gradient in each frame
+        if(!confirm(`Gradient ${si}→${ei}${rt!=='current'?' in each frame':''}?`))return;
+        saveState();
+        
+        if(rt==='current'){
+          const f=frames[currentFrame];
+          const sb=Array.from(selectedBytes).sort((a,b)=>a-b);
+          let mod=0,skip=0;
+          sb.forEach((i,idx)=>{
+            const ao=f.dataOffset+i;
+            if(ao<protectedHeaderEnd){skip++;return;}
+            if(frameProtectionEnabled&&i<currentFrameProtectionEnd){skip++;return;}
+            const p=sb.length>1?idx/(sb.length-1):0;
+            const v=Math.round(sv+(ev-sv)*p);
+            aviData.bytes[ao]=v;hexData[i]=v;mod++;
+          });
+          videoBlob=null;renderHex();updatePreview();
+          alert(`Gradient: ${mod}${skip?`\n${skip} skipped`:''}`);
+        }else{
+          const sp=Array.from(selectedBytes).sort((a,b)=>a-b);
+          let mod=0,skip=0;
+          
+          for(let fi=rs;fi<=re;fi++){
+            const f=frames[fi];
+            // Detect frame protection
+            let frameProtEnd=0;
+            if(frameProtectionEnabled&&f.isVideo){
+              const frameData=aviData.bytes.slice(f.dataOffset,f.dataOffset+f.size);
+              for(let i=0;i<frameData.length-1;i++){
+                if(frameData[i]===0xFF&&frameData[i+1]===0xDA){frameProtEnd=i+2;break;}
+              }
+            }
+            
+            sp.forEach((i,idx)=>{
+              if(i>=f.size)return;
+              const ao=f.dataOffset+i;
+              if(ao<protectedHeaderEnd){skip++;return;}
+              if(frameProtectionEnabled&&i<frameProtEnd){skip++;return;}
+              const p=sp.length>1?idx/(sp.length-1):0;
+              const v=Math.round(sv+(ev-sv)*p);
+              aviData.bytes[ao]=v;mod++;
+            });
+          }
+          
+          loadFrameHex(currentFrame);videoBlob=null;
+          alert(`Relative gradient: ${mod}${skip?`\n${skip} skipped`:''}`);
+        }
+      }
+    }
+
+    function patternFill(){
+      if(!selectedBytes.size)return alert('Select bytes');
+      const pi=document.getElementById('patternInput').value.trim();
+      if(!pi)return alert('Enter pattern');
+      const pat=pi.split(/\s+/).map(v=>parseInt(v,16));
+      if(pat.some(isNaN))return alert('Invalid');
+      
+      const [rs,re]=getFrameRange();
+      const rt=document.querySelector('input[name="frameRange"]:checked').value;
+      let msg=`Pattern [${pi}] for ${selectedBytes.size} bytes`;
+      if(rt==='current')msg+=` in current frame?`;
+      else msg+=` across ${re-rs+1} frames?`;
+      if(!confirm(msg))return;
+      saveState();
+      let mod=0,skip=0;
+      if(rt==='current'){
+        const f=frames[currentFrame];
+        const sb=Array.from(selectedBytes).sort((a,b)=>a-b);
+        sb.forEach((i,idx)=>{
+          const ao=f.dataOffset+i;
+          if(ao<protectedHeaderEnd){skip++;return;}
+          if(frameProtectionEnabled&&i<currentFrameProtectionEnd){skip++;return;}
+          const v=pat[idx%pat.length];
+          aviData.bytes[ao]=v;hexData[i]=v;mod++;
+        });
+      }else{
+        const sp=Array.from(selectedBytes).sort((a,b)=>a-b);
+        for(let fi=rs;fi<=re;fi++){
+          const f=frames[fi];
+          // Detect frame protection
+          let frameProtEnd=0;
+          if(frameProtectionEnabled&&f.isVideo){
+            const frameData=aviData.bytes.slice(f.dataOffset,f.dataOffset+f.size);
+            for(let i=0;i<frameData.length-1;i++){
+              if(frameData[i]===0xFF&&frameData[i+1]===0xDA){frameProtEnd=i+2;break;}
+            }
+          }
+          sp.forEach((i,idx)=>{
+            if(i>=f.size)return;
+            const ao=f.dataOffset+i;
+            if(ao<protectedHeaderEnd){skip++;return;}
+            if(frameProtectionEnabled&&i<frameProtEnd){skip++;return;}
+            const v=pat[idx%pat.length];
+            aviData.bytes[ao]=v;mod++;
+          });
+        }
+      }
+      loadFrameHex(currentFrame);videoBlob=null;
+      alert(`Pattern: ${mod}${skip?`\n${skip} skipped`:''}`);
+    }
+
+    function shiftSelection(dir){
+      if(!selectedBytes.size)return alert('Select bytes');
+      const sa=parseInt(document.getElementById('shiftAmount').value)||16;
+      const as=sa*dir;
+      applyAction((f,i)=>{
+        const cv=aviData.bytes[f.dataOffset+i];
+        const nv=Math.max(0,Math.min(255,cv+as));
+        aviData.bytes[f.dataOffset+i]=nv;
+        if(f.index===currentFrame)hexData[i]=nv;
+      },`Shift ${dir>0?'+':''}${as}`);
+    }
+
+    function getFrameRange(){
+      const rt=document.querySelector('input[name="frameRange"]:checked').value;
+      if(rt==='current')return[currentFrame,currentFrame];
+      else if(rt==='all')return[0,frames.length-1];
+      else return[customRangeStart,customRangeEnd];
+    }
+
+    function updateRangeMode(){
+      const rt=document.querySelector('input[name="frameRange"]:checked').value;
+      document.getElementById('customRangeDisplay').classList.toggle('hidden',rt!=='custom');
+      drawTimeline();
+    }
+
+    function updateRangeDisplay(){
+      document.getElementById('rangeStartDisplay').textContent=customRangeStart;
+      document.getElementById('rangeEndDisplay').textContent=customRangeEnd;
+    }
+
+    ['findInput','setValueInput','gradStart','gradEnd','patternInput'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.addEventListener('input',function(){this.value=this.value.toUpperCase();});
+    });
+
+    window.addEventListener('resize',()=>{if(frames.length)drawTimeline();});
+  </script>
+</body>
+</html>
